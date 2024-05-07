@@ -33,7 +33,7 @@ function popUpAction () {
   width: 400px;
   min-height: 340px;
   border-radius: 15px;
-  overflow-y: scroll;
+  /* overflow-y: scroll; */
   background-color: rgba(255, 255, 250, 0.3);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.11), 0 1px 2px rgba(0, 0, 0, 0.11),
     0 2px 4px rgba(0, 0, 0, 0.11), 0 4px 8px rgba(0, 0, 0, 0.11),
