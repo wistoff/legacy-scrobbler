@@ -102,7 +102,7 @@
 
 <script setup>
 import ArrowRight from '../assets/icons/a-right.svg'
-import { defineEmits, onMounted, ref } from 'vue'
+import { onMounted } from 'vue'
 
 import { useStates } from '../composables/useStates.js'
 const { popup, showAboutPopup, showAccessPopup, showErrorPopup } = useStates()

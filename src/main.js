@@ -1,4 +1,11 @@
-const { app, BrowserWindow, session, shell, ipcMain, dialog } = require('electron')
+const {
+  app,
+  BrowserWindow,
+  session,
+  shell,
+  ipcMain,
+  dialog
+} = require('electron')
 const { onMounted } = require('vue')
 const path = require('path')
 const store = require('./store')
@@ -78,6 +85,22 @@ app.on('ready', async () => {
   ipcMain.handle('delete:file', handleDeleteFile)
 
   createWindow({ width, height })
+
+  const { session } = require('electron')
+
+  session.defaultSession.webRequest.onHeadersReceived(
+    { urls: ['<all_urls>'] },
+    (details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "script-src 'self' https://api.legacyscrobbler.software"
+          ]
+        }
+      })
+    }
+  )
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -170,21 +193,3 @@ async function handleDeleteFile (event, { path }) {
   })
   return true
 }
-
-onMounted(() => {
-  const { session } = require('electron')
-
-  session.defaultSession.webRequest.onHeadersReceived(
-    { urls: ['<all_urls>'] },
-    (details, callback) => {
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          'Content-Security-Policy': [
-            "script-src 'self' https://api.legacyscrobbler.software",
-          ]
-        }
-      })
-    }
-  )
-})

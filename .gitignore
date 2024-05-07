@@ -90,3 +90,8 @@ typings/
 
 # Electron-Forge
 out/
+
+# build scripts
+build-scripts/
+
+*.zip

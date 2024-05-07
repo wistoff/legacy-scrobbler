@@ -12,19 +12,17 @@
     "lint": "echo \"No linting configured\""
   },
   "keywords": [],
-  "author": {
-    "name": "Kjell Wistoff"
-  },
-  "license": "MIT",
+  "author": "Kjell Wistoff",
+  "license": "GPLv",
   "devDependencies": {
-    "@electron-forge/cli": "^6.1.1",
-    "@electron-forge/maker-deb": "^6.1.1",
-    "@electron-forge/maker-rpm": "^6.1.1",
-    "@electron-forge/maker-squirrel": "^6.1.1",
-    "@electron-forge/maker-zip": "^6.1.1",
-    "@electron-forge/plugin-vite": "^6.1.1",
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-deb": "^7.4.0",
+    "@electron-forge/maker-rpm": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron-forge/maker-zip": "^7.4.0",
+    "@electron-forge/plugin-vite": "^7.4.0",
     "@vitejs/plugin-vue": "^4.2.1",
-    "electron": "24.2.0",
+    "electron": "^24.8.8",
     "vite": "^4.3.5"
   },
   "dependencies": {

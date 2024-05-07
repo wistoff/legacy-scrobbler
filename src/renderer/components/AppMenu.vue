@@ -55,7 +55,7 @@ import refreshIcon from '../assets/icons/refresh.svg'
 import settingsIcon from '../assets/icons/settings.svg'
 import uploadIcon from '../assets/icons/upload.svg'
 import eraseIcon from '../assets/icons/erase.svg'
-import { defineProps, defineEmits, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 import { usePrefs } from '../composables/usePrefs.js'
 const { preferences } = usePrefs()

@@ -1,6 +1,20 @@
+const buildKeys = require('./build-scripts/build-keys')
+
 module.exports = {
   packagerConfig: {
-    icon: './images/icon'
+    icon: './images/icon',
+    // osxSign: {
+    //   'hardened-runtime': true,
+    //   entitlements: 'build-scripts/entitlements.plist',
+    //   'entitlements-inherit': 'build-scripts/entitlements.plist',
+    //   'signature-flags': 'library'
+    // },
+    // osxNotarize: {
+    //   tool: 'notarytool',
+    //   appleId: buildKeys.apple.appleId,
+    //   appleIdPassword: buildKeys.apple.appleIdPassword,
+    //   teamId: buildKeys.apple.teamId
+    // }
   },
   rebuildConfig: {},
   makers: [

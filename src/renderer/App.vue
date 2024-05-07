@@ -417,7 +417,7 @@ button:hover {
 .content {
   display: flex;
   flex-grow: 1;
-  overflow-y: scroll;
+  overflow-y: auto;
   flex-direction: column;
 }
 

@@ -16,8 +16,6 @@
 import { useStates } from '../composables/useStates.js'
 const { popup } = useStates()
 
-import { defineEmits } from 'vue'
-
 const emit = defineEmits(['handleLogin'])
 
 function popUpAction () {
