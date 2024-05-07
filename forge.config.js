@@ -1,4 +1,4 @@
-const buildKeys = require('./build-scripts/build-keys')
+//const buildKeys = require('./build-scripts/build-keys')
 
 module.exports = {
   packagerConfig: {
