@@ -1,4 +1,4 @@
-const buildKeys = require('./build-scripts/build-keys')
+//const buildKeys = require('./build-scripts/build-keys')
 const os = require('os')
 
 // Function to construct the path based on architecture
