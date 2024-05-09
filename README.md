@@ -86,7 +86,7 @@ When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in p
 ## Tested on Operating Systems
 
 - macOS: ✅
-- Windows: ❓
+- Windows: ✅
 - Linux: ❓
 
 ## Changelog
