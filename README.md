@@ -18,7 +18,7 @@
 
 Legacy Scrobbler is designed to bridge the gap between legacy hardware, and the music platform [Last.fm](last.fm). It enables users to sync their listening history from offline devices to their Last.fm profile, preserving their music legacy in the digital era.
 
-**Download**: [Legacy Scrobbler Releases](https://legacyscrobbler.software)
+**Download**: [Legacy Scrobbler Releases](https://github.com/wistoff/legacy-scrobbler/releases)
 
 ## How to Use
 
