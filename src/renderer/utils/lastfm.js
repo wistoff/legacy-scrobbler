@@ -69,7 +69,7 @@ export async function login () {
           clearInterval(checkWindowFocus)
           resolve()
         }
-      }, 100)
+      }, 200)
     })
     const sessionKey = await fetchSessionKey(userToken)
     if (sessionKey === 'failed') {

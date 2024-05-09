@@ -1,5 +1,8 @@
+// build keys when signing and notarizing the app
 //const buildKeys = require('./build-scripts/build-keys')
+
 const os = require('os')
+const package = require('./package.json')
 
 // Function to construct the path based on architecture
 function getAppPath (arch) {
@@ -15,15 +18,16 @@ function getAppPath (arch) {
 }
 
 // Get command line arguments
-const args = process.argv.slice(2); // Exclude first two elements 
+const args = process.argv.slice(2) // Exclude first two elements
 
 // Extract architecture argument if present
-const archIndex = args.indexOf('--arch');
-const arch = archIndex !== -1 ? args[archIndex + 1] : undefined;
+const archIndex = args.indexOf('--arch')
+const arch = archIndex !== -1 ? args[archIndex + 1] : undefined
 
 module.exports = {
   packagerConfig: {
-    icon: './images/icon',
+    icon: './images/icon'
+    // Signing and Notarization options: not working on Windows and Linux
     // osxSign: {
     //   'hardened-runtime': true,
     //   entitlements: 'build-scripts/entitlements.plist',
@@ -39,14 +43,19 @@ module.exports = {
   },
   rebuildConfig: {},
   makers: [
+    // Make Windows installer
     {
       name: '@electron-forge/maker-squirrel',
-      config: {}
+      config: {
+        authors: 'Kjell Wistoff',
+        description:
+          'Legacy Scrobbler enables users to sync their listening history from offline devices to their Last.fm profile, preserving their music legacy in the digital era.',
+        setupExe: `Legacy Scrobbler-${package.version}-setup-${arch}.exe`,
+        setupIcon: './images/icon.ico',
+        loadingGif: './images/win-setup-loading.gif'
+      }
     },
-    // {
-    //   name: '@electron-forge/maker-zip',
-    //   platforms: ['darwin']
-    // },
+    // Make DMG file for macOS
     {
       name: '@electron-forge/maker-dmg',
       config: {
@@ -64,14 +73,18 @@ module.exports = {
         ]
       }
     },
-    {
-      name: '@electron-forge/maker-deb',
-      config: {}
-    },
-    {
-      name: '@electron-forge/maker-rpm',
-      config: {}
-    }
+    // {
+    //   name: '@electron-forge/maker-zip',
+    //   platforms: ['darwin']
+    // },
+    // {
+    //   name: '@electron-forge/maker-deb',
+    //   config: {}
+    // },
+    // {
+    //   name: '@electron-forge/maker-rpm',
+    //   config: {}
+    // }
   ],
   plugins: [
     {

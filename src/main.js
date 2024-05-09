@@ -6,7 +6,6 @@ const {
   ipcMain,
   dialog
 } = require('electron')
-const { onMounted } = require('vue')
 const path = require('path')
 const store = require('./store')
 const fs = require('fs')
@@ -18,11 +17,14 @@ if (require('electron-squirrel-startup')) {
   app.quit()
 }
 
+const isWindows = process.platform === 'win32'
+
 const createWindow = ({ width, height }) => {
   // Create the browser window.
 
   const mainWindow = new BrowserWindow({
-    titleBarStyle: 'hidden',
+    frame: isWindows,
+    autoHideMenuBar: true,
     width: width,
     height: height,
     minWidth: 660,
@@ -85,8 +87,6 @@ app.on('ready', async () => {
   ipcMain.handle('delete:file', handleDeleteFile)
 
   createWindow({ width, height })
-
-  const { session } = require('electron')
 
   session.defaultSession.webRequest.onHeadersReceived(
     { urls: ['<all_urls>'] },

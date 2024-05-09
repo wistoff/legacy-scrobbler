@@ -52,6 +52,15 @@ Legacy Scrobbler is designed to bridge the gap between legacy hardware, and the 
 4. Run the application in development mode: `npm run start`
 5. To build the application for distribution: `npm run make`
 
+### Building for different platforms:
+
+**MacOs Apple Silicon:** ``npm run make -- --arch=x64 --platform=darwin`` <br>
+**MacOs Intel:** ``npm run make -- --arch=amd64 --platform=darwin``<br>
+**Windows 64-Bit:** ``npm run make -- --arch="x64" --platform=win32``<br>
+**Windows 32-Bit:** ``npm run make -- --arch="ia32" --platform=win32``<br>
+<br>
+When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in package.json 
+
 ## Features
 - Sync tracks from iPod to Last.fm profile.
 - Preserve offline listening history digitally.
