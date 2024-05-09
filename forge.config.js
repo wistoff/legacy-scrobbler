@@ -4,25 +4,12 @@
 const os = require('os')
 const package = require('./package.json')
 
-// Function to construct the path based on architecture
-function getAppPath (arch) {
-  const platform = os.platform()
-  if (platform === 'darwin') {
-    if (arch) {
-      return `${process.cwd()}/out/Legacy Scrobbler-darwin-${arch}/Legacy Scrobbler.app`
-    } else {
-      // If no architecture is provided, use the current platform's architecture
-      return `${process.cwd()}/out/Legacy Scrobbler-darwin-${os.arch()}/Legacy Scrobbler.app`
-    }
-  }
-}
-
 // Get command line arguments
 const args = process.argv.slice(2) // Exclude first two elements
 
 // Extract architecture argument if present
 const archIndex = args.indexOf('--arch')
-const arch = archIndex !== -1 ? args[archIndex + 1] : undefined
+const arch = archIndex !== -1 ? args[archIndex + 1] : os.arch()
 
 module.exports = {
   packagerConfig: {
@@ -68,11 +55,11 @@ module.exports = {
             x: 150,
             y: 150,
             type: 'file',
-            path: getAppPath(arch)
+            path: `${process.cwd()}/out/Legacy Scrobbler-darwin-${arch}/Legacy Scrobbler.app`
           }
         ]
       }
-    },
+    }
     // {
     //   name: '@electron-forge/maker-zip',
     //   platforms: ['darwin']
