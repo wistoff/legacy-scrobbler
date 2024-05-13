@@ -5,8 +5,6 @@ import axios from 'axios'
 import { usePrefs } from '../composables/usePrefs.js'
 const { preferences, setPreferences } = usePrefs()
 
-import { ref } from 'vue'
-
 export async function fetchCreds () {
   try {
     const response = await axios.get(`${serverUrl}/authenticate`)
@@ -55,41 +53,38 @@ export async function fetchUserInfo (sessionKey) {
   }
 }
 
-export async function login () {
+export async function login (userToken) {
   try {
-    const { apiKey, userToken } = await fetchCreds()
-
-    const url = await constructUrl(apiKey, userToken)
-
-    window.open(url, '_blank')
-    // Waiting for the user to come back to the window
-    await new Promise(resolve => {
-      const checkWindowFocus = setInterval(() => {
-        if (windowFocus.value) {
-          clearInterval(checkWindowFocus)
-          resolve()
-        }
-      }, 200)
-    })
     const sessionKey = await fetchSessionKey(userToken)
     if (sessionKey === 'failed') {
       return {
         status: false,
-        message: 'Please return to your Browser and allow Legacy Scrobbler to access your profile.'
+        message:
+          'Please return to your Browser and allow Legacy Scrobbler to access your profile.'
       }
     } else {
       await setPreferences('singleConfig', 'lastFm', {
-        apiKey: apiKey,
         sessionKey: sessionKey
       })
       return { status: true, message: '' }
     }
   } catch (error) {
+    console.log(error)
     return {
       status: false,
       message: 'Legacy Scrobbler service seems to be offline. Sorry.'
     }
   }
+}
+
+export async function connectLastFm () {
+  const { apiKey, userToken } = await fetchCreds()
+  const url = await constructUrl(apiKey, userToken)
+  window.open(url, '_blank')
+  await setPreferences('singleConfig', 'lastFm', {
+    apiKey: apiKey,
+    userToken: userToken
+  })
 }
 
 export async function updateProfile () {
@@ -129,8 +124,3 @@ export async function scrobbleTracks (tracklist) {
   }
 }
 
-const windowFocus = ref(true)
-
-window.ipc.onUpdateCounter(value => {
-  windowFocus.value = value
-})

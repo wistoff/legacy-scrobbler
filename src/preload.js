@@ -8,6 +8,4 @@ contextBridge.exposeInMainWorld('ipc', {
   writeConfig: (action, key, value) =>
     ipcRenderer.invoke('write:config', { action, key, value }),
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
-  onUpdateCounter: callback =>
-    ipcRenderer.on('win:focus', (_event, value) => callback(value))
 })

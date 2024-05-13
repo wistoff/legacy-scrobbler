@@ -16,7 +16,7 @@ const POPUP_STATES = {
   ABOUT: {
     title: 'About Legacy Scrobbler',
     message: `
-    <b> Version: 1.0.0</b>
+    <b> Version: 1.0.1</b>
 
     <p class="credits"> <b>Credits:</b><br/>
     Legacy Scrobbler utilizes icons from Iconoir under the MIT License.<br/>
@@ -27,6 +27,12 @@ const POPUP_STATES = {
     2024 Kjell Wistoff<br/></p>
 `,
     button: 'Close'
+  },
+  CONNECT: {
+    title: 'Connect to lastFm',
+    message:
+      'Confirm that you successfully connected to Last.fm. If you have granted access to your profile using your Browser, you can now login to Last.fm.',
+    button: 'Login'
   }
 }
 
@@ -64,10 +70,16 @@ export const useStates = () => {
     globalPopup.content = POPUP_STATES.ABOUT
   }
 
+  const showConnectPopup = () => {
+    globalPopup.state = true
+    globalPopup.content = POPUP_STATES.CONNECT
+  }
+
   return {
     deviceState: globalDeviceState,
     popup: globalPopup,
     errorPopup: errorPopup,
+    showConnectPopup,
     setDeviceState,
     showErrorPopup,
     showAccessPopup,

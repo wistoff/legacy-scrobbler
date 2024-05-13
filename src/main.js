@@ -52,16 +52,6 @@ const createWindow = ({ width, height }) => {
     return { action: 'deny' } // Prevent the app from opening the URL.
   })
 
-  mainWindow.on('focus', () => {
-    mainWindow.webContents.send('win:focus', true)
-    console.log('Window focused')
-  })
-
-  mainWindow.on('blur', () => {
-    mainWindow.webContents.send('win:focus', false)
-    console.log('Window blurred')
-  })
-
   mainWindow.on('resize', () => {
     // The event doesn't pass us the window size, so we call the `getBounds` method which returns an object with
     // the height, width, and x and y coordinates.

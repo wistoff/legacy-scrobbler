@@ -1,5 +1,5 @@
 // build keys when signing and notarizing the app
-//const buildKeys = require('./build-scripts/build-keys')
+// const buildKeys = require('./build-scripts/build-keys')
 
 const os = require('os')
 const package = require('./package.json')
@@ -13,7 +13,7 @@ const arch = archIndex !== -1 ? args[archIndex + 1] : os.arch()
 
 module.exports = {
   packagerConfig: {
-    icon: './images/icon'
+    icon: './images/icon',
     // Signing and Notarization options: not working on Windows and Linux
     // osxSign: {
     //   'hardened-runtime': true,

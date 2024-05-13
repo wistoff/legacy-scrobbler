@@ -16,10 +16,12 @@
 import { useStates } from '../composables/useStates.js'
 const { popup } = useStates()
 
-const emit = defineEmits(['handleLogin'])
+const emit = defineEmits(['handleConnect', 'handleLogin'])
 
 function popUpAction () {
   if (popup.content.button === 'Allow Access') {
+    emit('handleConnect')
+  } else if (popup.content.button === 'Login') {
     emit('handleLogin')
   } else {
     popup.state = false
@@ -69,6 +71,4 @@ function popUpAction () {
 .popup h1 {
   padding: 15px 0 4px 0;
 }
-
-
 </style>

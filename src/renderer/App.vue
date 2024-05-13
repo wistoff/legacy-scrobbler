@@ -1,11 +1,14 @@
 <template>
-<transition name="pop">
-  <Popup
-    v-if="(popup.state && popup.content.title === 'About Legacy Scrobbler') || (popup.state && !settingsMenu)"
-    @handleLogin="handleLogin"
-  ></Popup>
-</transition>
-
+  <transition name="pop">
+    <Popup
+      v-if="
+        (popup.state && popup.content.title === 'About Legacy Scrobbler') ||
+        (popup.state && !settingsMenu)
+      "
+      @handleConnect="handleConnect"
+      @handleLogin="handleLogin"
+    ></Popup>
+  </transition>
 
   <transition name="pop">
     <ErrorPopup v-if="errorPopup.state"></ErrorPopup>
@@ -65,7 +68,8 @@ const {
   errorPopup,
   setDeviceState,
   showAccessPopup,
-  showErrorPopup
+  showErrorPopup,
+  showConnectPopup
 } = useStates()
 
 import { useTracklist } from './composables/useTracklist.js'
@@ -82,7 +86,12 @@ const {
 import { usePrefs } from './composables/usePrefs.js'
 const { preferences, getPreferences } = usePrefs()
 
-import { updateProfile, scrobbleTracks, login } from './utils/lastfm.js'
+import {
+  updateProfile,
+  scrobbleTracks,
+  login,
+  connectLastFm
+} from './utils/lastfm.js'
 
 const isLoading = ref(false)
 const isUploading = ref(false)
@@ -145,28 +154,30 @@ const getTracklist = async () => {
   await getDeviceState()
   await clearTracklist()
   await clearScrobbled()
-  try{
-  // only get the library when the device is ready and not loading
-  if (!isLoading.value && deviceState.value === 'ready') {
-    isLoading.value = true
-    const receivedRecentTracks = await window.ipc.readFile(
-      path.value,
-      'getLibrary'
-    )
-    updateTracklist(receivedRecentTracks)
-    // if (tracklist.length === 0) {
-    //   processing.value = false
-    // }
-    isLoading.value = false
-    // if the autoUpload is enabled, scrobble the new tracks
-    if (preferences.autoUpload) {
-      scrobbleNewTracks()
+  try {
+    // only get the library when the device is ready and not loading
+    if (!isLoading.value && deviceState.value === 'ready') {
+      isLoading.value = true
+      const receivedRecentTracks = await window.ipc.readFile(
+        path.value,
+        'getLibrary'
+      )
+      updateTracklist(receivedRecentTracks)
+      // if (tracklist.length === 0) {
+      //   processing.value = false
+      // }
+      isLoading.value = false
+      // if the autoUpload is enabled, scrobble the new tracks
+      if (preferences.autoUpload) {
+        scrobbleNewTracks()
+      }
+    } else {
+      processing.value = false
     }
-  } else {
-    processing.value = false
-  }}
-  catch(error){
-    showErrorPopup('Error getting Tracks from device. Maybe the Play Count file is corrupted?')
+  } catch (error) {
+    showErrorPopup(
+      'Error getting Tracks from device. Maybe the Play Count file is corrupted?'
+    )
   }
 }
 
@@ -218,7 +229,7 @@ const toggleSettings = () => {
 const scrobbleNewTracks = async () => {
   console.log('Uploading New Tracks')
   isUploading.value = true
-  const {status, message} = await scrobbleTracks(selectedTracklist)
+  const { status, message } = await scrobbleTracks(selectedTracklist)
   // only clear the tracklist if the scrobbling was successful
   if (status) {
     console.log('Tracks Scrobbled')
@@ -248,14 +259,21 @@ async function checkProfile () {
   }
 }
 
+async function handleConnect () {
+  await connectLastFm()
+  showConnectPopup()
+}
+
 async function handleLogin () {
-  const { status, message } = await login()
+  const userToken = preferences.lastFm.userToken
+  const { status, message } = await login(userToken)
   console.log(status, message)
   if (status) {
     console.log('Logged in')
     preferences.lastFm.loggedIn = true
     popup.state = false
     updateProfile()
+    settingsMenu.value = true
   } else {
     showErrorPopup(message)
     preferences.lastFm.loggedIn = false

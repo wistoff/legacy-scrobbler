@@ -54,8 +54,8 @@ Legacy Scrobbler is designed to bridge the gap between legacy hardware, and the 
 
 ### Building for different platforms:
 
-**MacOs Apple Silicon:** ``npm run make -- --arch=x64 --platform=darwin`` <br>
-**MacOs Intel:** ``npm run make -- --arch=amd64 --platform=darwin``<br>
+**MacOs Silicon:** ``npm run make -- --arch=arm64 --platform=darwin``<br>
+**MacOs Apple Intel:** ``npm run make -- --arch=x64 --platform=darwin``<br>
 **Windows 64-Bit:** ``npm run make -- --arch="x64" --platform=win32``<br>
 **Windows 32-Bit:** ``npm run make -- --arch="ia32" --platform=win32``<br>
 <br>

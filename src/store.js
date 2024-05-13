@@ -7,13 +7,14 @@ const configFilePath = path.join(userDataPath, 'preferences.json')
 
 const defaults = {
   windowBounds: { width: 640, height: 480 },
-  autoScan: true,
-  autoDelete: true,
+  autoScan: false,
+  autoDelete: false,
   autoUpload: false,
   devicePath: '/Volumes/iPod',
   lastFm: {
     loggedIn: false,
     apiKey: '',
+    userToken: '',
     sessionKey: '',
     username: '',
     profilePicture: '',

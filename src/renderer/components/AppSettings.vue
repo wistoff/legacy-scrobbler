@@ -16,14 +16,6 @@
           </p>
         </div>
       </div>
-      <div
-        v-if="!preferences.lastFm.loggedIn"
-        class="settings-button"
-        @click="handleLogin()"
-      >
-        <p>Connect to Last.fm</p>
-      </div>
-
       <div class="settings-group">
         <div class="settings-item">
           <p>Automatic Library Scan</p>
@@ -105,9 +97,7 @@ import ArrowRight from '../assets/icons/a-right.svg'
 import { onMounted } from 'vue'
 
 import { useStates } from '../composables/useStates.js'
-const { popup, showAboutPopup, showAccessPopup, showErrorPopup } = useStates()
-
-import { login, updateProfile } from '../utils/lastfm.js'
+const { showAboutPopup, showAccessPopup } = useStates()
 
 import { usePrefs } from '../composables/usePrefs.js'
 const { preferences, setPreferences } = usePrefs()
@@ -132,31 +122,20 @@ const formatDate = unixtime => {
 
 const resetPrefs = async () => {
   setPreferences('resetConfig')
+  closeSettings()
   showAccessPopup()
-}
-
-async function handleLogin () {
-  const { status, message } = await login()
-  console.log(status, message)
-  if (status) {
-    console.log('Logged in')
-    updateProfile()
-    preferences.lastFm.loggedIn = true
-    popup.state = false
-  } else {
-    showErrorPopup(message)
-    preferences.lastFm.loggedIn = false
-  }
 }
 
 async function signOut () {
   await setPreferences('singleConfig', 'lastFm', {
     loggedIn: false,
     apiKey: '',
+    userToken: '',
     sessionKey: '',
     username: '',
     registered: ''
   })
+  closeSettings()
   showAccessPopup()
 }
 
