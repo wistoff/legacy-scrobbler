@@ -33,10 +33,13 @@ Legacy Scrobbler is designed to bridge the gap between legacy hardware, and the 
 3. Once authorized, Legacy Scrobbler will automatically detect your connected iPod.
 4. Adjust the following settings to your needs.
 
+## Please Notice
+- If you use iTunes/Apple Music to sync your iPod this will erase the Play Counts File, in order to scrobble your recent Plays do not sync before using Legacy Scrobbler 
+
 ## Settings
 ![Settings](/images/settings.png)
 - **Automatic Library Scan**: Automatically scans the library for new tracks if a device is connected.
-- **Automatic Delete**: Automatically deletes the play records from the iPod after scrobbling them.
+- **Automatic Delete**: Automatically deletes the play records from the iPod after scrobbling them. (Just like iTunes/Apple Music when syncing your iPod.)
 - **Automatic Upload**: Automatically uploads the scrobbles to your Last.fm profile.
 - **DevicePath**: Change the default device path to match the home folder of your iPod.
 
