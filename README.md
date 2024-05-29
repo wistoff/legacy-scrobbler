@@ -76,15 +76,16 @@ When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in p
 
 | Device              | Compatibility      |
 |---------------------|--------------------|
-| iPod Classic 1th Gen| -                 |
-| iPod Classic 2th Gen| -                 |
-| iPod Classic 3th Gen| -                 |
-| iPod Classic 4th Gen| -                 |
+| iPod Classic 1st Gen| -                 |
+| iPod Classic 2nd Gen| -                 |
+| iPod Classic 3rd Gen| -                 |
+| iPod Classic 4th Gen| ✅                 |
 | iPod Classic 5th Gen| ✅                |
-| iPod Classic 6th Gen| -                 |
-| iPod Classic 6.5th Gen| -               |
-| iPod Nano           | ❌                 |
-| iPod Shuffle        | ❌                 |
+| iPod Classic 6th Gen| ✅                 |
+| iPod Classic 6.5th Gen| ✅               |
+| iPod Nano 3rd Gen| ✅                   |
+
+If you tested another device and can confirm it's working, please let me know. 
 
 ## Tested on Operating Systems
 
