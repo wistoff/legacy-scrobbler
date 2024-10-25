@@ -71,6 +71,7 @@ When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in p
 
 ## Known Issues
 - Currently, songs played multiple times are scrobbled only once to Last.fm. This is due to the limitation of iPod Play Counts, which only save the timestamp for the first time the track has been listened to. Further investigation is required to address this issue.
+- Once you've set the path to the iPod, you may need to restart the application. 
 
 ## Tested Devices
 
@@ -84,6 +85,7 @@ When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in p
 | iPod Classic 6th Gen| ✅                 |
 | iPod Classic 6.5th Gen| ✅               |
 | iPod Nano 3rd Gen| ✅                   |
+| iPod Nano 4th Gen| ✅                   |
 
 If you tested another device and can confirm it's working, please let me know. 
 
