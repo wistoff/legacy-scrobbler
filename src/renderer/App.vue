@@ -227,26 +227,44 @@ const toggleSettings = () => {
 }
 
 const scrobbleNewTracks = async () => {
-  console.log('Uploading New Tracks')
-  isUploading.value = true
-  const { status, message } = await scrobbleTracks(selectedTracklist)
-  // only clear the tracklist if the scrobbling was successful
-  if (status) {
-    console.log('Tracks Scrobbled')
-    scrobbled.tracks = selectedTracklist.length
-    scrobbled.playtime = playtime.value
-    await clearTracklist()
-    // if the autoDelete is enabled, also clear the playcounts and reset the scrobbled state
-    if (preferences.autoDelete) {
-      await clearPlayCounts(false)
+  console.log('Uploading New Tracks');
+  isUploading.value = true;
+  processing.value = true;
+
+  // Add missing 'artist' and 'album' fields to tracks
+  const fixedTracklist = selectedTracklist.map(track => ({
+    ...track,
+    artist: track.artist || "Unknown Artist", // Default to "Unknown Artist" if missing
+    album: track.album || "Unknown Album",   // Default to "Unknown Album" if missing
+  }));
+
+  try {
+    // Send the entire fixed tracklist
+    const { status, message } = await scrobbleTracks(fixedTracklist);
+
+    if (status) {
+      console.log('Tracks Scrobbled Successfully');
+      scrobbled.tracks = fixedTracklist.length;
+      scrobbled.playtime = fixedTracklist.reduce((sum, track) => sum + track.length, 0);
+      await clearTracklist(); // Clear the tracklist
+
+      // If autoDelete is enabled, clear play counts
+      if (preferences.autoDelete) {
+        await clearPlayCounts(false);
+      }
+    } else {
+      console.error('Failed to scrobble tracks:', message);
+      showErrorPopup(`Failed to scrobble tracks: ${message}`);
     }
-  } else {
-    showErrorPopup(message)
+  } catch (error) {
+    console.error('Error scrobbling tracks:', error);
+    showErrorPopup(`An error occurred while scrobbling: ${error.message}`);
+  } finally {
+    isUploading.value = false;
+    processing.value = false;
+    scrobbled.state = true;
   }
-  isUploading.value = false
-  processing.value = false
-  scrobbled.state = true
-}
+};
 
 async function checkProfile () {
   const login = await updateProfile()
