@@ -13,6 +13,11 @@
   <transition name="pop">
     <ErrorPopup v-if="errorPopup.state"></ErrorPopup>
   </transition>
+
+  <transition name="pop">
+    <TrackStatusPopup v-if="trackStatuses.length > 0" :tracks="trackStatuses" />
+  </transition>
+
   <div
     :class="{
       dragable: !settingsMenu,
@@ -60,8 +65,10 @@ import LoadingView from './views/LoadingView.vue'
 import UploadingView from './views/UploadingView.vue'
 import Popup from './components/Popup.vue'
 import ErrorPopup from './components/ErrorPopup.vue'
+import TrackStatusPopup from './components/TrackStatusPopup.vue'
 
 import { useStates } from './composables/useStates.js'
+
 const {
   deviceState,
   popup,
@@ -86,9 +93,13 @@ const {
 import { usePrefs } from './composables/usePrefs.js'
 const { preferences, getPreferences } = usePrefs()
 
+import { useTrackStatuses } from './composables/useTrackStatuses.js'
+const { trackStatuses, addTrackStatus, updateTrackStatus } = useTrackStatuses()
+
 import {
   updateProfile,
   scrobbleTracks,
+  scrobbleTracksIndividually,
   login,
   connectLastFm
 } from './utils/lastfm.js'
@@ -229,20 +240,26 @@ const toggleSettings = () => {
 const scrobbleNewTracks = async () => {
   console.log('Uploading New Tracks')
   isUploading.value = true
-  const { status, message } = await scrobbleTracks(selectedTracklist)
-  // only clear the tracklist if the scrobbling was successful
+
+  const { status } = await scrobbleTracks(selectedTracklist)
+
   if (status) {
     console.log('Tracks Scrobbled')
     scrobbled.tracks = selectedTracklist.length
     scrobbled.playtime = playtime.value
     await clearTracklist()
-    // if the autoDelete is enabled, also clear the playcounts and reset the scrobbled state
     if (preferences.autoDelete) {
       await clearPlayCounts(false)
     }
   } else {
-    showErrorPopup(message)
+    selectedTracklist.forEach(track => {
+      addTrackStatus(track, 'pending')
+    })
+    const failedTracks = await scrobbleTracksIndividually(selectedTracklist, updateTrackStatus)
+    console.log("Some tracks failed",failedTracks)
+    scrobbled.tracks = selectedTracklist.length
   }
+
   isUploading.value = false
   processing.value = false
   scrobbled.state = true
