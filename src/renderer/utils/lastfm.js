@@ -102,25 +102,55 @@ export async function updateProfile () {
   return true
 }
 
-export async function scrobbleTracks (tracklist) {
-  console.log('tracklist', tracklist)
-  try {
-    const response = await axios.post(
-      `${serverUrl}/scrobble`,
-      { tracklist: tracklist, sessionKey: preferences.lastFm.sessionKey },
-      {
-        headers: {
-          Authorization: `Bearer ${preferences.lastFm.sessionKey}`
-        }
-      }
-    )
-    console.log('response', response)
-    if (response.data.success) {
-      return { status: true, message: '' }
-    }
-  } catch (error) {
-    console.error('Error:', error.message)
-    return { status: false, message: 'Failed to scrobble Tracks' }
+export async function scrobbleTracks(tracklist) {
+  console.log("tracklist", tracklist)
+
+  if (await sendScrobbleRequest(tracklist)) {
+      return { status: true }
   }
+
+  return { status: false }
 }
 
+export async function scrobbleTracksIndividually(tracklist, updateTrackStatus) {
+  const failedTracks = []
+
+  const promises = tracklist.map(async (track, index) => {
+      try {
+          const success = await sendScrobbleRequest([track], 30000)
+          if (success) {
+              updateTrackStatus(index, "success")
+          } else {
+              updateTrackStatus(index, "failed")
+              failedTracks.push(track)
+          }
+      } catch (error) {
+          console.error("Error scrobbling track", track, error)
+          updateTrackStatus(index, "failed")
+          failedTracks.push(track)
+      }
+  })
+
+  await Promise.all(promises)
+
+  return failedTracks
+}
+
+async function sendScrobbleRequest(tracklist, timeout = 0) {
+  try {
+      const response = await axios.post(
+          `${serverUrl}/scrobble`,
+          { tracklist, sessionKey: preferences.lastFm.sessionKey },
+          {
+              headers: {
+                  Authorization: `Bearer ${preferences.lastFm.sessionKey}`,
+              },
+              timeout,
+          }
+      )
+      return response.data.success
+  } catch (error) {
+      console.error("Error scrobbling:", error.message)
+      return false
+  }
+}
