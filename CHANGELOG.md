@@ -7,8 +7,6 @@
 ### Known Issues
 - Songs played multiple times are scrobbled only once.
 
-
-
 ## Version 1.0.1 - Improved Login (2024-13-05)
 
 - Improved login process by implementing a confirmation popup after authenticating via browser due to unreliable auto-detection, particularly on Windows.
@@ -16,7 +14,13 @@
 - Streamlined login process by relocating the login button from Settings to the login popup only.
 - Implemented automatic closure of the menu upon logging out or resetting configuration, prompting users to reconnect.
 
-
 ### Known Issues
 - Songs played multiple times are scrobbled only once.
 
+## Version 1.0.2 - Improved Handling of Failed Scrobbles
+
+- Implemented a mechanism proposed in a pull request to retry scrobbling individual tracks when a batch scrobble request fails.
+- Tracks that could not be scrobbled are now displayed in a popup for user visibility.
+
+### Known Issues
+- Songs played multiple times are scrobbled only once.

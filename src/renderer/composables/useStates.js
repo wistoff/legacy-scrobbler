@@ -16,7 +16,7 @@ const POPUP_STATES = {
   ABOUT: {
     title: 'About Legacy Scrobbler',
     message: `
-    <b> Version: 1.0.1</b>
+    <b> Version: 1.0.2</b>
 
     <p class="credits"> <b>Credits:</b><br/>
     Legacy Scrobbler utilizes icons from Iconoir under the MIT License.<br/>
