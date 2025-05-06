@@ -5,8 +5,9 @@
           <h1>Scrobbling Status</h1>
           <table>
             <tr v-for="(item, index) in tracks" :key="index">
-              <td class="track">{{ item.track.track }}</td>
-              <td class="artist">{{ item.track.artist }}</td>
+              <td class="track">{{ item.track.track || 'Unknown Track' }}</td>
+              <td class="artist">{{ item.track.artist || 'Unknown Artist' }}</td>
+              <td class="album">{{ item.track.album || 'Unknown Album' }}</td>
               <td class="status" :class="item.status">
                 <span v-if="item.status === 'success'">✅</span>
                 <span v-else-if="item.status === 'failed'">❌</span>
@@ -86,6 +87,11 @@
   }
   
   .artist {
+    opacity: 0.6;
+    flex: 2;
+  }
+
+  .album {
     opacity: 0.6;
     flex: 2;
   }

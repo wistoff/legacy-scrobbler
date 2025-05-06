@@ -14,14 +14,14 @@ export const useTracklist = () => {
   }
 
   // Function to clear the tracklist
-  const clearScrobbled  = () => {
+  const clearScrobbled  = async () => {
     scrobbled.tracks = 0
     scrobbled.playtime = 0
     scrobbled.state = false
     selectedTracks.splice(0, selectedTracks.length)
   }
 
-  const clearTracklist = () => {
+  const clearTracklist = async () => {
     globalTracklist.splice(0, globalTracklist.length)
   }
 

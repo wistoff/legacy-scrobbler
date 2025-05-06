@@ -258,6 +258,15 @@ const scrobbleNewTracks = async () => {
     const failedTracks = await scrobbleTracksIndividually(selectedTracklist, updateTrackStatus)
     console.log("Some tracks failed",failedTracks)
     scrobbled.tracks = selectedTracklist.length
+
+    failedTracks.forEach((track) => {
+      const index = selectedTracklist.findIndex(
+        (t) => t.track === track.track && t.artist === track.artist
+      )
+      if (index !== -1) {
+        selectedTracklist.splice(index, 1)
+      }
+    })
   }
 
   isUploading.value = false
