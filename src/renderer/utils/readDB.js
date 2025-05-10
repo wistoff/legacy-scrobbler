@@ -167,6 +167,31 @@ function littleEndianToBigInt (byteArray) {
   return BigInt('0x' + bigEndianBytes.toString('hex'))
 }
 
+// New function to generate play timestamps based on play count and track duration
+function generatePlayTimestamps(lastPlayed, playCount, trackDuration) {
+  const timestamps = []
+  
+  // Convert track duration from milliseconds to seconds
+  let durationInSeconds = Math.floor(trackDuration / 1000)
+  
+  // If track is less than 40 seconds, treat it as 1 minute
+  if (durationInSeconds < 40) {
+    durationInSeconds = 60
+  }
+  
+  // Add some buffer time between plays
+  const bufferTime = 30
+  
+  // Generate timestamps for each play
+  for (let i = 0; i < playCount; i++) {
+    // Calculate timestamp for each play by subtracting duration and buffer time
+    const timestamp = lastPlayed - (i * (durationInSeconds + bufferTime))
+    timestamps.unshift(timestamp) // Add to beginning to maintain chronological order
+  }
+  
+  return timestamps
+}
+
 async function parsePlayCounts (filePath, tracklist) {
   try {
     console.log('Reading "Play Counts" file:', filePath)
@@ -230,6 +255,22 @@ async function parsePlayCounts (filePath, tracklist) {
 
         tracklist[i].playCount = playCount
         tracklist[i].lastPlayed = lastPlayed
+        
+        // Generate multiple timestamps for each play
+        if (tracklist[i].length != null && tracklist[i].length > 0) {
+          tracklist[i].playTimestamps = generatePlayTimestamps(
+            lastPlayed, 
+            playCount, 
+            tracklist[i].length
+          )
+        } else {
+          // If track length is not available, use a default duration
+          tracklist[i].playTimestamps = generatePlayTimestamps(
+            lastPlayed, 
+            playCount, 
+            180000
+          )
+        }
       }
 
       bytesOffset = savedBytes + entryLen
@@ -248,11 +289,53 @@ export async function getRecentTracks (path) {
   const playCountsPath = path + 'Play Counts'
   const tracklist = await parse(iTunesDbPath, playCountsPath)
 
-  const recentPlays = tracklist.filter(
-    entry => entry.playCount && entry.playCount > 0
-  )
+  const recentPlays = []
+  
+  tracklist.forEach(track => {
+    if (track.playCount && track.playCount > 0) {
+      if (track.playTimestamps && track.playTimestamps.length > 0) {
+        // Create separate entries for each play
+        track.playTimestamps.forEach(timestamp => {
+          recentPlays.push({
+            ...track,
+            lastPlayed: timestamp
+          })
+        })
+      } else {
+        recentPlays.push(track)
+      }
+    }
+  })
+  
   recentPlays.sort((a, b) => b.lastPlayed - a.lastPlayed)
   return recentPlays
+}
+
+export async function getAllScrobbles (path) {
+  const iTunesDbPath = path + 'iTunesDB'
+  const playCountsPath = path + 'Play Counts'
+  const tracklist = await parse(iTunesDbPath, playCountsPath)
+
+  // Expand all tracks into individual scrobbles
+  const allScrobbles = []
+  
+  tracklist.forEach(track => {
+    if (track.playCount && track.playCount > 0 && track.playTimestamps) {
+      // Create a scrobble entry for each play
+      track.playTimestamps.forEach(timestamp => {
+        const scrobbleEntry = {
+          ...track,
+          lastPlayed: timestamp
+        }
+        allScrobbles.push(scrobbleEntry)
+      })
+    }
+  })
+  
+  // Sort by lastPlayed
+  allScrobbles.sort((a, b) => a.lastPlayed - b.lastPlayed)
+  
+  return allScrobbles
 }
 
 export async function parse (iTunesDbPath, playCountsPath) {
