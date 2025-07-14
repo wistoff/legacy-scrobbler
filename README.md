@@ -77,7 +77,7 @@ When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in p
 
 | Device              | Compatibility      |
 |---------------------|--------------------|
-| iPod Classic 1st Gen| -                 |
+| iPod Classic 1st Gen| ✅                 |
 | iPod Classic 2nd Gen| -                 |
 | iPod Classic 3rd Gen| -                 |
 | iPod Classic 4th Gen| ✅                 |
