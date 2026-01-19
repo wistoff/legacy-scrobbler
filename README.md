@@ -41,7 +41,7 @@ Legacy Scrobbler is designed to bridge the gap between legacy hardware, and the 
 - **Automatic Library Scan**: Automatically scans the library for new tracks if a device is connected.
 - **Automatic Delete**: Automatically deletes the play records from the iPod after scrobbling them. (Just like iTunes/Apple Music when syncing your iPod.)
 - **Automatic Upload**: Automatically uploads the scrobbles to your Last.fm profile.
-- **Scrobble Multiple Plays**: Automatically scrobbles multiple plays (timestamps are estimated)
+- **Scrobble Repeat Plays**: Automatically scrobbles repeat plays (timestamps are estimated)
 - **DevicePath**: Change the default device path to match the home folder of your iPod.
 
 ## Building from Source

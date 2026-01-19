@@ -124,7 +124,7 @@
 
         <div class="settings-item">
           <div class="settings-item-label">
-            <p>Scrobble Multiple Plays</p>
+            <p>Scrobble Repeat Plays</p>
             <button
               class="info-button"
               type="button"
@@ -137,7 +137,7 @@
                 role="tooltip"
                 class="info-tooltip"
               >
-                Uses the iPod play count to submit multiple scrobbles for the
+                Uses the iPod play count to submit repeat scrobbles for the
                 same track. The count is accurate, but the iPod only stores one
                 timestamp, so we estimate the others by spacing them out. Exact
                 timing and order may be approximate.
