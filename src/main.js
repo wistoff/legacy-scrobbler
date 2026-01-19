@@ -4,7 +4,11 @@ const {
   session,
   shell,
   ipcMain,
-  dialog
+  dialog,
+  Tray,
+  Menu,
+  Notification,
+  nativeImage
 } = require('electron')
 const path = require('path')
 const store = require('./store')
@@ -18,6 +22,9 @@ if (require('electron-squirrel-startup')) {
   app.quit()
 }
 
+app.disableHardwareAcceleration()
+app.commandLine.appendSwitch('disable-gpu')
+
 const isWindows = process.platform === 'win32'
 const isDev = !app.isPackaged || Boolean(MAIN_WINDOW_VITE_DEV_SERVER_URL)
 const logDebug = (...args) => {
@@ -26,6 +33,22 @@ const logDebug = (...args) => {
   }
 }
 let lastDeviceStateLog = null
+let mainWindow = null
+let tray = null
+let isQuitting = false
+let backgroundDeviceState = 'not-connected'
+let backgroundMonitor = null
+let pendingSyncPrompt = false
+
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    createTray()
+    updateTrayTooltip()
+  })
+}
 
 const execFileAsync = (file, args) => {
   return new Promise((resolve, reject) => {
@@ -56,10 +79,77 @@ const resolveMacVolumePath = devicePath => {
   return `/${parts[0]}/${parts[1]}`
 }
 
+const getTrayIconPath = () => {
+  const iconName = process.platform === 'darwin' ? 'icon.icns' : 'icon.ico'
+  const appPathIcon = path.join(app.getAppPath(), 'images', iconName)
+  if (existsSync(appPathIcon)) {
+    return appPathIcon
+  }
+  return path.join(process.resourcesPath, 'images', iconName)
+}
+
+const getTrayIcon = () => {
+  const iconPath = getTrayIconPath()
+  const icon = nativeImage.createFromPath(iconPath)
+  if (icon.isEmpty()) {
+    logDebug('tray icon missing or invalid', { iconPath })
+  }
+  return icon
+}
+
+const ensureWindow = () => {
+  if (mainWindow) {
+    return { window: mainWindow, created: false }
+  }
+  const { width, height } = store.getConfig('windowBounds')
+  createWindow({ width, height })
+  return { window: mainWindow, created: true }
+}
+
+const showMainWindow = () => {
+  const { window, created } = ensureWindow()
+  if (!window) {
+    return
+  }
+  if (window.isMinimized()) {
+    window.restore()
+  }
+  window.show()
+  window.focus()
+  if (pendingSyncPrompt) {
+    const sendPrompt = () => {
+      window.webContents.send('sync:prompt', { source: 'device' })
+    }
+    if (created) {
+      window.webContents.once('did-finish-load', sendPrompt)
+    } else {
+      sendPrompt()
+    }
+    pendingSyncPrompt = false
+  }
+}
+
+const sendSyncPrompt = source => {
+  const { window, created } = ensureWindow()
+  if (!window) {
+    return
+  }
+  pendingSyncPrompt = false
+  const sendPrompt = () => {
+    window.webContents.send('sync:prompt', { source })
+  }
+  if (created) {
+    window.webContents.once('did-finish-load', sendPrompt)
+  } else {
+    sendPrompt()
+  }
+  showMainWindow()
+}
+
 const createWindow = ({ width, height }) => {
   // Create the browser window.
 
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     titleBarStyle: isWindows ? false : 'hidden',
     frame: isWindows,
     autoHideMenuBar: true,
@@ -71,7 +161,7 @@ const createWindow = ({ width, height }) => {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      devTools: false,
+      devTools: isDev,
       preload: path.resolve(__dirname, 'preload.js')
     }
   })
@@ -102,22 +192,178 @@ const createWindow = ({ width, height }) => {
   if (isDev) {
     mainWindow.webContents.openDevTools({ mode: 'detach' })
   }
+
+  mainWindow.on('close', event => {
+    if (isQuitting) {
+      return
+    }
+    event.preventDefault()
+    mainWindow.destroy()
+  })
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
+}
+
+const createTray = () => {
+  if (tray) {
+    return
+  }
+  const icon = getTrayIcon()
+  tray = new Tray(icon.isEmpty() ? getTrayIconPath() : icon)
+  updateTrayTooltip()
+  tray.on('click', () => {
+    showMainWindow()
+  })
+  tray.setContextMenu(Menu.buildFromTemplate([
+    {
+      label: 'Open',
+      click: () => showMainWindow()
+    },
+    {
+      label: 'Start Scrobbling',
+      click: () => {
+        sendSyncPrompt('tray')
+      }
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        isQuitting = true
+        app.quit()
+      }
+    }
+  ]))
+}
+
+const buildDeviceBasePath = devicePath => {
+  if (typeof devicePath !== 'string' || devicePath.length === 0) {
+    return ''
+  }
+  const trimmed = devicePath.replace(/[\\/]+$/, '')
+  return path.join(trimmed, 'iPod_Control', 'iTunes')
+}
+
+const getDeviceStateForBasePath = basePath => {
+  const normalized = typeof basePath === 'string'
+    ? basePath.replace(/[\\/]+$/, '')
+    : ''
+  if (!normalized) {
+    return 'not-connected'
+  }
+  const libraryFolder = existsSync(normalized)
+  if (!libraryFolder) {
+    return 'not-connected'
+  }
+  const playCountsPath = path.join(normalized, 'Play Counts')
+  const recentPlays = existsSync(playCountsPath)
+  return recentPlays ? 'ready' : 'no-plays'
+}
+
+const showDeviceNotification = () => {
+  if (!Notification.isSupported()) {
+    return
+  }
+  const icon = getTrayIcon()
+  const notification = new Notification({
+    title: 'iPod detected',
+    body: 'Close iTunes or Apple Music, then click Start Scrobbling.',
+    icon: icon.isEmpty() ? getTrayIconPath() : icon
+  })
+  notification.on('click', () => {
+    showMainWindow()
+  })
+  notification.show()
+}
+
+const formatLastSyncTooltip = lastSyncAt => {
+  if (!lastSyncAt) {
+    return 'Last scrobbled: never'
+  }
+  const date = new Date(lastSyncAt * 1000)
+  return `Last scrobbled: ${date.toLocaleString()}`
+}
+
+const updateTrayTooltip = () => {
+  if (!tray) {
+    return
+  }
+  const preferences = store.getFullConfig()
+  const lastSyncAt = preferences?.lastSyncAt || 0
+  tray.setToolTip(formatLastSyncTooltip(lastSyncAt))
+}
+
+const startBackgroundMonitor = () => {
+  if (backgroundMonitor) {
+    return
+  }
+  backgroundMonitor = setInterval(() => {
+    const preferences = store.getFullConfig()
+    const devicePath = preferences?.devicePath
+    const basePath = buildDeviceBasePath(devicePath)
+    const state = getDeviceStateForBasePath(basePath)
+    updateTrayTooltip()
+    if (state !== backgroundDeviceState) {
+      logDebug('background device state', {
+        previous: backgroundDeviceState,
+        current: state
+      })
+    }
+    if (backgroundDeviceState === 'not-connected' && state !== 'not-connected') {
+      showDeviceNotification()
+      pendingSyncPrompt = true
+    }
+    if (state === 'not-connected') {
+      pendingSyncPrompt = false
+    }
+    backgroundDeviceState = state
+  }, 5000)
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
-  const { width, height } = store.getConfig('windowBounds')
-
+  if (!gotSingleInstanceLock) {
+    return
+  }
   ipcMain.handle('read:file', handleReadFile)
   ipcMain.handle('read:config', handleReadConfig)
   ipcMain.handle('write:config', handleWriteConfig)
   ipcMain.handle('dialog:openFile', handleFileOpen)
   ipcMain.handle('delete:file', handleDeleteFile)
   ipcMain.handle('device:eject', handleEjectDevice)
+  ipcMain.handle('window:show', () => {
+    showMainWindow()
+  })
+  ipcMain.handle('notify:sync', (event, { title, body }) => {
+    if (!Notification.isSupported()) {
+      return { status: false }
+    }
+    const icon = getTrayIcon()
+    const notification = new Notification({
+      title: title || 'Legacy Scrobbler',
+      body: body || '',
+      icon: icon.isEmpty() ? getTrayIconPath() : icon
+    })
+    notification.on('click', () => {
+      pendingSyncPrompt = true
+    })
+    notification.show()
+    return { status: true }
+  })
 
-  createWindow({ width, height })
+  if (isWindows) {
+    app.setAppUserModelId('LegacyScrobbler')
+    if (app.isPackaged) {
+      app.setLoginItemSettings({ openAtLogin: true })
+    }
+  }
+
+  createTray()
+  startBackgroundMonitor()
 
   session.defaultSession.webRequest.onHeadersReceived(
     { urls: ['<all_urls>'] },
@@ -138,18 +384,25 @@ app.on('ready', async () => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (process.platform === 'darwin') {
+    return
+  }
+  if (isQuitting) {
     app.quit()
   }
 })
 
-app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  const { width, height } = store.getConfig('windowBounds')
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow({ width, height })
+app.on('before-quit', () => {
+  isQuitting = true
+  if (backgroundMonitor) {
+    clearInterval(backgroundMonitor)
+    backgroundMonitor = null
   }
+})
+
+app.on('activate', () => {
+  createTray()
+  updateTrayTooltip()
 })
 
 // In this file you can include the rest of your app's specific main process
@@ -228,6 +481,10 @@ async function handleEjectDevice (event, { path: devicePath }) {
       await execFileAsync('diskutil', ['eject', volumePath])
       return { status: true, message: '' }
     } catch (error) {
+      if (!existsSync(volumePath)) {
+        logDebug('eject error but volume already gone', { volumePath })
+        return { status: true, message: '' }
+      }
       console.error('Error ejecting device:', error)
       return {
         status: false,
@@ -260,10 +517,21 @@ async function handleEjectDevice (event, { path: devicePath }) {
     await new Promise(resolve => setTimeout(resolve, 500))
     if (existsSync(drivePath)) {
       logDebug('eject verb returned but drive still mounted', { drivePath })
-      await execFileAsync('mountvol.exe', [driveLetter, '/p'])
+      try {
+        await execFileAsync('mountvol.exe', [driveLetter, '/p'])
+      } catch (error) {
+        if (existsSync(drivePath)) {
+          throw error
+        }
+        logDebug('mountvol failed but drive already gone', { drivePath })
+      }
     }
     return { status: true, message: '' }
   } catch (error) {
+    if (!existsSync(drivePath)) {
+      logDebug('eject error but drive already gone', { drivePath })
+      return { status: true, message: '' }
+    }
     console.error('Error ejecting device:', error)
     return {
       status: false,

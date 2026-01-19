@@ -32,6 +32,11 @@ Legacy Scrobbler is designed to bridge the gap between legacy hardware, and the 
 2. Authorize Legacy Scrobbler to access your Last.fm account.
 3. Once authorized, Legacy Scrobbler will automatically detect your connected iPod.
 4. Adjust the following settings to your needs.
+5. Closing the window keeps Legacy Scrobbler running in the background; reopen it from the tray/menu bar icon.
+
+### Tray Mode
+- The tray icon keeps the app running in the background so it can detect your iPod.
+- Hover the tray icon to see the last scrobble time.
 
 ## Please Notice
 - If you use iTunes/Apple Music to sync your iPod this will erase the Play Counts File, in order to scrobble your recent Plays do not sync before using Legacy Scrobbler 
@@ -69,6 +74,7 @@ When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in p
 - Sync tracks from iPod to Last.fm profile.
 - Preserve offline listening history digitally.
 - Simple and intuitive interface for easy navigation.
+- Tray mode for background detection and quick access.
 
 ## Known Issues
 - Exact per-play timestamps are not available from iPod Play Counts. When "Scrobble Repeat Plays" is enabled, Legacy Scrobbler approximates repeat plays using track length and spacing.

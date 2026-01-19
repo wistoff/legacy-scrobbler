@@ -4,6 +4,10 @@ contextBridge.exposeInMainWorld('ipc', {
   readFile: (path, action) => ipcRenderer.invoke('read:file', { path, action }),
   deletePlaycount: (path) => ipcRenderer.invoke('delete:file', { path }),
   ejectDevice: (path) => ipcRenderer.invoke('device:eject', { path }),
+  showWindow: () => ipcRenderer.invoke('window:show'),
+  showNotification: (title, body) =>
+    ipcRenderer.invoke('notify:sync', { title, body }),
+  onSyncPrompt: (handler) => ipcRenderer.on('sync:prompt', handler),
   readConfig: (action, key) =>
     ipcRenderer.invoke('read:config', { action, key }),
   writeConfig: (action, key, value) =>

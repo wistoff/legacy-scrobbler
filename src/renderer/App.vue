@@ -18,6 +18,14 @@
     <TrackStatusPopup v-if="trackStatuses.length > 0" :tracks="trackStatuses" />
   </transition>
 
+  <transition name="pop">
+    <SyncPrompt
+      v-if="syncPromptOpen"
+      @confirm="handleSyncPromptConfirm"
+      @cancel="handleSyncPromptCancel"
+    />
+  </transition>
+
   <div
     :class="{
       dragable: !settingsMenu,
@@ -68,6 +76,7 @@ import UploadingView from './views/UploadingView.vue'
 import Popup from './components/Popup.vue'
 import ErrorPopup from './components/ErrorPopup.vue'
 import TrackStatusPopup from './components/TrackStatusPopup.vue'
+import SyncPrompt from './components/SyncPrompt.vue'
 
 import { useStates } from './composables/useStates.js'
 
@@ -121,6 +130,8 @@ const settingsMenu = ref(false)
 const processing = ref(false)
 const missingDevicePathNotified = ref(false)
 const ledgerCalloutDismissed = ref(false)
+const syncPromptOpen = ref(false)
+const syncPromptedThisConnection = ref(false)
 
 const debugEnabled = import.meta.env.DEV
 const logDebug = (...args) => {
@@ -275,6 +286,19 @@ const updateDeviceLedger = async ledgerUpdates => {
   }
 }
 
+const updateLastSyncTimestamp = async count => {
+  if (!count) {
+    return
+  }
+  const syncedAt = Math.floor(Date.now() / 1000)
+  logDebug('updateLastSyncTimestamp', { syncedAt, count })
+  try {
+    await setPreferences('singleConfig', 'lastSyncAt', syncedAt)
+  } catch (error) {
+    console.error('Error updating last sync timestamp:', error)
+  }
+}
+
 const clearDeviceLedger = async () => {
   const deviceKey = getDeviceKey()
   if (!deviceKey) {
@@ -384,7 +408,7 @@ const renderComponent = computed(() => {
 })
 
 // get the tracklist from the iPod
-const getTracklist = async () => {
+const getTracklist = async (forceUpload = false) => {
   if (processing.value || isLoading.value || isUploading.value) {
     logDebug('getTracklist skipped', {
       processing: processing.value,
@@ -459,7 +483,8 @@ const getTracklist = async () => {
       // }
       isLoading.value = false
       // if the autoUpload is enabled, scrobble the new tracks
-      if (preferences.autoUpload && filteredTracks.length > 0) {
+      const shouldUpload = forceUpload || preferences.autoUpload
+      if (shouldUpload && filteredTracks.length > 0) {
         await scrobbleNewTracks()
       } else {
         processing.value = false
@@ -512,6 +537,8 @@ const getDeviceState = async () => {
   logDebug('getDeviceState', { previousDeviceState, receivedDeviceState })
   if (receivedDeviceState === 'not-connected') {
     setDeviceState('not-connected')
+    syncPromptedThisConnection.value = false
+    syncPromptOpen.value = false
     if (previousDeviceState !== 'not-connected') {
       logDebug('device disconnected, clearing state')
       await clearTracklist()
@@ -522,6 +549,7 @@ const getDeviceState = async () => {
   } else if (receivedDeviceState === 'no-plays') {
     setDeviceState('no-plays')
     if (previousDeviceState === 'not-connected') {
+      triggerSyncPrompt('device')
       const scannedAt = Math.floor(Date.now() / 1000)
       setScanSummary(0, 0, scannedAt, false)
       hasScanned.value = true
@@ -534,6 +562,9 @@ const getDeviceState = async () => {
   } else if (receivedDeviceState === 'ready') {
     setDeviceState('ready')
     if (previousDeviceState !== 'ready') {
+      if (previousDeviceState === 'not-connected') {
+        triggerSyncPrompt('device')
+      }
       logDebug('device ready, resetting scan state')
       await clearTracklist()
       await clearScrobbled()
@@ -560,6 +591,10 @@ const pollDeviceState = async () => {
   try {
     await getDeviceState()
     if (deviceState.value === 'ready' && preferences.autoScan) {
+      if (syncPromptOpen.value || syncPromptedThisConnection.value) {
+        logDebug('pollDeviceState autoScan blocked by prompt')
+        return
+      }
       if (
         !hasScanned.value &&
         !isLoading.value &&
@@ -587,6 +622,35 @@ const pollDeviceState = async () => {
   } finally {
     isPolling = false
   }
+}
+
+const triggerSyncPrompt = async (source, force = false) => {
+  if (syncPromptedThisConnection.value && !force) {
+    return
+  }
+  syncPromptedThisConnection.value = true
+  syncPromptOpen.value = true
+  logDebug('sync prompt opened', { source })
+  if (window.ipc.showWindow) {
+    await window.ipc.showWindow()
+  }
+  const shouldNotify = source === 'device'
+  if (shouldNotify && window.ipc.showNotification) {
+    await window.ipc.showNotification(
+      'iPod detected',
+      'Close iTunes or Apple Music, then click Start Scrobbling.'
+    )
+  }
+}
+
+const handleSyncPromptConfirm = async () => {
+  syncPromptOpen.value = false
+  await getTracklist(true)
+}
+
+const handleSyncPromptCancel = () => {
+  syncPromptOpen.value = false
+  logDebug('sync prompt dismissed')
 }
 
 const scrobbleNewTracks = async () => {
@@ -627,6 +691,7 @@ const scrobbleNewTracks = async () => {
       setScrobbledSummary(scrobbles, skipped)
       scrobbled.playtime = calculatePlaytimeFromScrobbles(scrobbles)
       setLastSync(scrobbles, skipped, scrobbled.playtime)
+      await updateLastSyncTimestamp(scrobbles.length)
       await updateDeviceLedger(ledgerUpdates)
       await clearTracklist()
       if (preferences.autoDelete) {
@@ -665,6 +730,7 @@ const scrobbleNewTracks = async () => {
       setScrobbledSummary(submittedScrobbles, skippedTracks)
       scrobbled.playtime = calculatePlaytimeFromScrobbles(submittedScrobbles)
       setLastSync(submittedScrobbles, skippedTracks, scrobbled.playtime)
+      await updateLastSyncTimestamp(submittedScrobbles.length)
       await updateDeviceLedger(fallbackLedgerUpdates)
 
       failedTracks.forEach((track) => {
@@ -755,6 +821,18 @@ onMounted(async () => {
     stopInterval(intervalId)
     startInterval()
   })
+
+  if (window.ipc.onSyncPrompt) {
+    window.ipc.onSyncPrompt(async (event, payload) => {
+      const source = payload?.source || 'tray'
+      await getDeviceState()
+      if (deviceState.value === 'not-connected') {
+        logDebug('sync prompt ignored, no device', { source })
+        return
+      }
+      triggerSyncPrompt(source, true)
+    })
+  }
 
   watch(
     () => preferences.devicePath,

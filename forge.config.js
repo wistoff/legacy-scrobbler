@@ -14,6 +14,7 @@ const arch = archIndex !== -1 ? args[archIndex + 1] : os.arch()
 module.exports = {
   packagerConfig: {
     icon: './images/icon',
+    extraResource: ['images'],
     // Signing and Notarization options: not working on Windows and Linux
     // osxSign: {
     //   'hardened-runtime': true,
