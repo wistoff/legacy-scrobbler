@@ -1,8 +1,19 @@
 # Legacy Scrobbler Changelog
 
-## Version 1.0.0 - Initial Release (2024-01-05)
+## Version 1.0.3 - Repeat Scrobbles and Sync Improvements (2026-01-18)
 
--  Introducing Legacy Scrobbler, a tool to sync listening history from iPod to Last.fm.
+- Added optional repeat scrobbling with de-conflicted timestamps.
+- Added a per-device sync ledger (with last-played tracking) to avoid duplicates.
+- Added post-sync scrobble summary with submitted/skipped lists and last-sync history.
+- Added scan/upload status messaging, friendly loading phrases, and improved up-to-date view.
+- Added manual safe-eject button (Windows/macOS) and clearer device-path errors.
+- Added settings tooltips plus post-sync guidance to clear Play Counts when desired.
+- Improved Play Counts deletion handling and device state refresh after sync.
+
+## Version 1.0.2 - Improved Handling of Failed Scrobbles
+
+- Implemented a mechanism proposed in a pull request to retry scrobbling individual tracks when a batch scrobble request fails.
+- Tracks that could not be scrobbled are now displayed in a popup for user visibility.
 
 ### Known Issues
 - Songs played multiple times are scrobbled only once.
@@ -17,10 +28,9 @@
 ### Known Issues
 - Songs played multiple times are scrobbled only once.
 
-## Version 1.0.2 - Improved Handling of Failed Scrobbles
+## Version 1.0.0 - Initial Release (2024-01-05)
 
-- Implemented a mechanism proposed in a pull request to retry scrobbling individual tracks when a batch scrobble request fails.
-- Tracks that could not be scrobbled are now displayed in a popup for user visibility.
+- Introducing Legacy Scrobbler, a tool to sync listening history from iPod to Last.fm.
 
 ### Known Issues
 - Songs played multiple times are scrobbled only once.

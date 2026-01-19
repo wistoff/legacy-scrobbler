@@ -4,10 +4,12 @@
       v-if="deviceState.value === 'ready'"
       :src="eraseIcon"
       alt="Erase"
+      title="Delete Play Counts file on the iPod"
       @click="clearPlayCounts"
       :class="{
         disabled:
           isUploading ||
+          isEjecting ||
           isLoading ||
           preferences.lastFm.apiKey === '' ||
           selectedTracklist.length === 0
@@ -17,6 +19,7 @@
       <img
         ref="refreshIconRef"
         :src="refreshIcon"
+        title="Scan iPod for new plays"
         @click="loadNewTracks"
         @animationend="resetIsRefreshing"
         :class="{
@@ -25,27 +28,44 @@
           disabled:
             deviceState.value === 'not-connected' ||
             isUploading ||
+            isEjecting ||
             preferences.lastFm.apiKey === ''
         }"
         alt="Refresh"
       />
     </div>
     <img
+      :src="ejectIcon"
+      alt="Eject"
+      title="Safely eject iPod"
+      @click="ejectDevice"
+      :class="{
+        disabled:
+          deviceState.value === 'not-connected' ||
+          isLoading ||
+          isUploading ||
+          isEjecting
+      }"
+    />
+    <img
       :src="uploadIcon"
       alt="Upload"
+      title="Upload selected plays to Last.fm"
       @click="scrobbleNewTracks"
       :class="{
         disabled:
           tracklist.length === 0 ||
           !preferences.lastFm.loggedIn ||
-          selectedTracklist.length === 0
+          selectedTracklist.length === 0 ||
+          isEjecting
       }"
     />
     <img
       :src="settingsIcon"
       alt="Settings"
+      title="Open settings"
       @click="openSettings"
-      :class="{ disabled: isLoading || isUploading }"
+      :class="{ disabled: isLoading || isUploading || isEjecting }"
     />
   </div>
 </template>
@@ -55,6 +75,7 @@ import refreshIcon from '../assets/icons/refresh.svg'
 import settingsIcon from '../assets/icons/settings.svg'
 import uploadIcon from '../assets/icons/upload.svg'
 import eraseIcon from '../assets/icons/erase.svg'
+import ejectIcon from '../assets/icons/eject.svg'
 import { ref, watch } from 'vue'
 
 import { usePrefs } from '../composables/usePrefs.js'
@@ -69,18 +90,21 @@ const { tracklist, selectedTracklist } = useTracklist()
 // Define props
 const props = defineProps({
   isLoading: Boolean,
-  isUploading: Boolean
+  isUploading: Boolean,
+  isEjecting: Boolean
 })
 
 const emit = defineEmits([
   'getNewTracks',
   'openSettings',
   'scrobbleNewTracks',
-  'clearPlayCounts'
+  'clearPlayCounts',
+  'ejectDevice'
 ])
 
 const isLoading = ref(props.isLoading)
 const isUploading = ref(props.isUploading)
+const isEjecting = ref(props.isEjecting)
 const isRefreshing = ref(false)
 
 function resetIsRefreshing() {
@@ -88,6 +112,12 @@ function resetIsRefreshing() {
 }
 
 function loadNewTracks () {
+  if (isLoading.value || isUploading.value) {
+    return
+  }
+  if (isEjecting.value) {
+    return
+  }
   isRefreshing.value = true 
   if (
     deviceState.value !== 'not-connected' &&
@@ -98,28 +128,48 @@ function loadNewTracks () {
 }
 
 function openSettings () {
-  if (isLoading.value === false) {
+  if (isLoading.value === false && isEjecting.value === false) {
     emit('openSettings')
   }
 }
 
 function clearPlayCounts () {
-  if (isLoading.value === false && preferences.lastFm.apiKey !== '') {
+  if (
+    isLoading.value === false &&
+    isEjecting.value === false &&
+    preferences.lastFm.apiKey !== ''
+  ) {
     emit('clearPlayCounts')
   }
 }
 
 function scrobbleNewTracks () {
-  if (tracklist.length !== 0 && preferences.lastFm.apiKey !== '') {
+  if (
+    tracklist.length !== 0 &&
+    preferences.lastFm.apiKey !== '' &&
+    isEjecting.value === false
+  ) {
     emit('scrobbleNewTracks')
   }
 }
 
+function ejectDevice () {
+  if (
+    deviceState.value !== 'not-connected' &&
+    !isLoading.value &&
+    !isUploading.value &&
+    !isEjecting.value
+  ) {
+    emit('ejectDevice')
+  }
+}
+
 watch(
-  [() => props.isLoading, () => props.isUploading],
-  ([newIsLoading, newIsUploading]) => {
+  [() => props.isLoading, () => props.isUploading, () => props.isEjecting],
+  ([newIsLoading, newIsUploading, newIsEjecting]) => {
     isLoading.value = newIsLoading
     isUploading.value = newIsUploading
+    isEjecting.value = newIsEjecting
   }
 )
 </script>

@@ -7,7 +7,7 @@
   </div>
 </div>
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://legacyscrobbler.software)
+[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://legacyscrobbler.software)
 [![GitHub stars](https://img.shields.io/github/stars/wistoff/legacy-scrobbler.svg)](https://github.com/wistoff/legacy-scrobbler/stargazers)
 ![Electron](https://img.shields.io/badge/Electron-24.2.0-teal.svg)
 ![Vue](https://img.shields.io/badge/Vue-3.2.47-green.svg)
@@ -41,6 +41,7 @@ Legacy Scrobbler is designed to bridge the gap between legacy hardware, and the 
 - **Automatic Library Scan**: Automatically scans the library for new tracks if a device is connected.
 - **Automatic Delete**: Automatically deletes the play records from the iPod after scrobbling them. (Just like iTunes/Apple Music when syncing your iPod.)
 - **Automatic Upload**: Automatically uploads the scrobbles to your Last.fm profile.
+- **Scrobble Repeat Plays**: Automatically scrobbles repeat plays (timestamps are estimated)
 - **DevicePath**: Change the default device path to match the home folder of your iPod.
 
 ## Building from Source
@@ -70,7 +71,7 @@ When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in p
 - Simple and intuitive interface for easy navigation.
 
 ## Known Issues
-- Currently, songs played multiple times are scrobbled only once to Last.fm. This is due to the limitation of iPod Play Counts, which only save the timestamp for the first time the track has been listened to. Further investigation is required to address this issue.
+- Exact per-play timestamps are not available from iPod Play Counts. When "Scrobble Repeat Plays" is enabled, Legacy Scrobbler approximates repeat plays using track length and spacing.
 - Once you've set the path to the iPod, you may need to restart the application. 
 
 ## Tested Devices

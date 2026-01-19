@@ -9,6 +9,7 @@ const {
 const path = require('path')
 const store = require('./store')
 const fs = require('fs')
+const { execFile } = require('child_process')
 const { existsSync } = fs
 import { getRecentTracks } from './renderer/utils/readDB.js'
 
@@ -18,6 +19,42 @@ if (require('electron-squirrel-startup')) {
 }
 
 const isWindows = process.platform === 'win32'
+const isDev = !app.isPackaged || Boolean(MAIN_WINDOW_VITE_DEV_SERVER_URL)
+const logDebug = (...args) => {
+  if (isDev) {
+    console.log('[debug]', ...args)
+  }
+}
+let lastDeviceStateLog = null
+
+const execFileAsync = (file, args) => {
+  return new Promise((resolve, reject) => {
+    execFile(file, args, (error, stdout, stderr) => {
+      if (error) {
+        error.stdout = stdout
+        error.stderr = stderr
+        reject(error)
+        return
+      }
+      resolve({ stdout, stderr })
+    })
+  })
+}
+
+const resolveMacVolumePath = devicePath => {
+  if (typeof devicePath !== 'string' || devicePath.length === 0) {
+    return ''
+  }
+  const normalized = path.posix.normalize(devicePath)
+  if (!normalized.startsWith('/Volumes/')) {
+    return normalized
+  }
+  const parts = normalized.split('/').filter(Boolean)
+  if (parts.length < 2) {
+    return ''
+  }
+  return `/${parts[0]}/${parts[1]}`
+}
 
 const createWindow = ({ width, height }) => {
   // Create the browser window.
@@ -34,7 +71,7 @@ const createWindow = ({ width, height }) => {
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
-      devTools: false,
+      devTools: isDev,
       preload: path.resolve(__dirname, 'preload.js')
     }
   })
@@ -61,8 +98,10 @@ const createWindow = ({ width, height }) => {
     store.setConfig('windowBounds', { width, height })
   })
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  // Open the DevTools in dev mode.
+  if (isDev) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' })
+  }
 }
 
 // This method will be called when Electron has finished
@@ -76,6 +115,7 @@ app.on('ready', async () => {
   ipcMain.handle('write:config', handleWriteConfig)
   ipcMain.handle('dialog:openFile', handleFileOpen)
   ipcMain.handle('delete:file', handleDeleteFile)
+  ipcMain.handle('device:eject', handleEjectDevice)
 
   createWindow({ width, height })
 
@@ -118,21 +158,117 @@ app.on('activate', () => {
 async function handleReadFile (event, { path, action }) {
   try {
     if (action === 'getDeviceState') {
-      const libraryFolder = existsSync(path)
-      const recentPlays = existsSync(path + '/Play Counts')
+      const basePath = typeof path === 'string' ? path.replace(/[\\/]+$/, '') : ''
+      const libraryFolder = basePath ? existsSync(basePath) : false
+      const playCountsPath = basePath ? `${basePath}/Play Counts` : 'Play Counts'
+      const recentPlays = basePath ? existsSync(playCountsPath) : false
       if (!libraryFolder) {
+        const logEntry = { basePath, state: 'not-connected', playCountsPath }
+        if (JSON.stringify(lastDeviceStateLog) !== JSON.stringify(logEntry)) {
+          logDebug('device state check', logEntry)
+          lastDeviceStateLog = logEntry
+        }
         return 'not-connected'
       } else if (!recentPlays) {
+        const logEntry = {
+          basePath,
+          state: 'no-plays',
+          playCountsPath,
+          playCountsExists: recentPlays
+        }
+        if (JSON.stringify(lastDeviceStateLog) !== JSON.stringify(logEntry)) {
+          logDebug('device state check', logEntry)
+          lastDeviceStateLog = logEntry
+        }
         return 'no-plays'
       } else {
+        const logEntry = {
+          basePath,
+          state: 'ready',
+          playCountsPath,
+          playCountsExists: recentPlays
+        }
+        if (JSON.stringify(lastDeviceStateLog) !== JSON.stringify(logEntry)) {
+          logDebug('device state check', logEntry)
+          lastDeviceStateLog = logEntry
+        }
         return 'ready'
       }
     } else if (action === 'getLibrary') {
+      logDebug('getLibrary', { path })
       const recentTracks = await getRecentTracks(path)
       return recentTracks
     }
   } catch (error) {
     console.error('Error:', error.message)
+  }
+}
+
+async function handleEjectDevice (event, { path: devicePath }) {
+  if (!isWindows && process.platform !== 'darwin') {
+    return {
+      status: false,
+      message: 'Safe eject is only supported on Windows and macOS for now.'
+    }
+  }
+
+  const safePath = typeof devicePath === 'string' ? devicePath : ''
+  const trimmedPath = safePath.replace(/[\\/]+$/, '')
+
+  if (process.platform === 'darwin') {
+    const volumePath = resolveMacVolumePath(trimmedPath)
+    if (!volumePath) {
+      return {
+        status: false,
+        message: 'Invalid device path. Please reselect your iPod.'
+      }
+    }
+    logDebug('eject device requested', { devicePath: trimmedPath, volumePath })
+    try {
+      await execFileAsync('diskutil', ['eject', volumePath])
+      return { status: true, message: '' }
+    } catch (error) {
+      console.error('Error ejecting device:', error)
+      return {
+        status: false,
+        message: 'Unable to eject the iPod. Please try again.'
+      }
+    }
+  }
+
+  const root = trimmedPath ? path.parse(trimmedPath).root : ''
+  const driveLetter = root ? root.replace(/[\\/]+$/, '') : ''
+  if (!driveLetter) {
+    return {
+      status: false,
+      message: 'Invalid device path. Please reselect your iPod.'
+    }
+  }
+
+  const drivePath = `${driveLetter}\\`
+  logDebug('eject device requested', { devicePath: trimmedPath, driveLetter })
+
+  try {
+    const script = [
+      `$drive='${drivePath}'`,
+      '$shell=New-Object -ComObject Shell.Application',
+      '$item=$shell.Namespace(17).ParseName($drive)',
+      'if ($null -eq $item) { exit 2 }',
+      '$item.InvokeVerb(\"Eject\")'
+    ].join('; ')
+    await execFileAsync('powershell.exe', ['-NoProfile', '-Command', script])
+    await new Promise(resolve => setTimeout(resolve, 500))
+    if (existsSync(drivePath)) {
+      logDebug('eject verb returned but drive still mounted', { drivePath })
+      await execFileAsync('mountvol.exe', [driveLetter, '/p'])
+    }
+    return { status: true, message: '' }
+  } catch (error) {
+    console.error('Error ejecting device:', error)
+    return {
+      status: false,
+      message: 'Unable to eject the iPod. Please try again.'
+    }
   }
 }
 
@@ -170,17 +306,20 @@ async function handleWriteConfig (event, { action, key, value }) {
 }
 
 async function handleDeleteFile (event, { path }) {
-  console.log('Deleting file:', path)
+  const basePath = typeof path === 'string' ? path.replace(/[\\/]+$/, '') : ''
+  const playcountPath = basePath ? `${basePath}/Play Counts` : 'Play Counts'
+  console.log('Deleting file:', playcountPath)
 
-  const playcountPath = path + '/Play Counts'
-  fs.unlink(playcountPath, err => {
-    if (err) {
-      console.error('Error deleting file:', err)
-      event.returnValue = { success: false, error: err.message }
-    } else {
-      console.log('File deleted successfully')
-      event.returnValue = { success: true }
+  try {
+    await fs.promises.unlink(playcountPath)
+    console.log('File deleted successfully')
+    return true
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.log('Play Counts already deleted')
+      return true
     }
-  })
-  return true
+    console.error('Error deleting file:', error)
+    return false
+  }
 }

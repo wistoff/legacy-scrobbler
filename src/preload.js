@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('ipc', {
   readFile: (path, action) => ipcRenderer.invoke('read:file', { path, action }),
   deletePlaycount: (path) => ipcRenderer.invoke('delete:file', { path }),
+  ejectDevice: (path) => ipcRenderer.invoke('device:eject', { path }),
   readConfig: (action, key) =>
     ipcRenderer.invoke('read:config', { action, key }),
   writeConfig: (action, key, value) =>

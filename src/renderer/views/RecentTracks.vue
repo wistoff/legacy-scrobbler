@@ -85,7 +85,9 @@ td {
 }
 
 .track {
-  font-family: 'Barlow-Bold', sans-serif;
+  font-family: 'Barlow-Regular', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.1px;
   padding: 0 0 0 15px;
 }
 

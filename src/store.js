@@ -10,6 +10,8 @@ const defaults = {
   autoScan: false,
   autoDelete: false,
   autoUpload: false,
+  repeatScrobbles: true,
+  syncLedger: {},
   devicePath: '/Volumes/iPod',
   lastFm: {
     loggedIn: false,

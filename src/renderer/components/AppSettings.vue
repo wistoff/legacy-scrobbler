@@ -18,7 +18,25 @@
       </div>
       <div class="settings-group">
         <div class="settings-item">
-          <p>Automatic Library Scan</p>
+          <div class="settings-item-label">
+            <p>Automatic Library Scan</p>
+            <button
+              class="info-button"
+              type="button"
+              aria-label="Automatic Library Scan information"
+              aria-describedby="auto-scan-tooltip"
+            >
+              ?
+              <span
+                id="auto-scan-tooltip"
+                role="tooltip"
+                class="info-tooltip"
+              >
+                Periodically checks the iPod for new plays and refreshes the
+                list automatically.
+              </span>
+            </button>
+          </div>
           <label class="form-switch">
             <input
               type="checkbox"
@@ -32,7 +50,27 @@
         </div>
 
         <div class="settings-item">
-          <p>Automatic Delete</p>
+          <div class="settings-item-label">
+            <p>Automatic Delete</p>
+            <button
+              class="info-button"
+              type="button"
+              aria-label="Automatic Delete information"
+              aria-describedby="auto-delete-tooltip"
+            >
+              ?
+              <span
+                id="auto-delete-tooltip"
+                role="tooltip"
+                class="info-tooltip"
+              >
+                Removes the Play Counts file after a successful sync. Leaving
+                this off will not duplicate scrobbles in this app because it
+                keeps a local ledger. Only enable this if you want to stop
+                iTunes or other scrobblers from importing old plays.
+              </span>
+            </button>
+          </div>
           <label class="form-switch">
             <input
               type="checkbox"
@@ -50,7 +88,24 @@
         </div>
 
         <div class="settings-item">
-          <p>Automatic Upload</p>
+          <div class="settings-item-label">
+            <p>Automatic Upload</p>
+            <button
+              class="info-button"
+              type="button"
+              aria-label="Automatic Upload information"
+              aria-describedby="auto-upload-tooltip"
+            >
+              ?
+              <span
+                id="auto-upload-tooltip"
+                role="tooltip"
+                class="info-tooltip"
+              >
+                Starts scrobbling automatically after a scan finds new plays.
+              </span>
+            </button>
+          </div>
           <label class="form-switch">
             <input
               type="checkbox"
@@ -60,6 +115,44 @@
                   'singleConfig',
                   'autoUpload',
                   preferences.autoUpload
+                )
+              "
+            />
+            <i></i>
+          </label>
+        </div>
+
+        <div class="settings-item">
+          <div class="settings-item-label">
+            <p>Scrobble Multiple Plays</p>
+            <button
+              class="info-button"
+              type="button"
+              aria-label="Repeat plays limitation"
+              aria-describedby="repeat-plays-tooltip"
+            >
+              ?
+              <span
+                id="repeat-plays-tooltip"
+                role="tooltip"
+                class="info-tooltip"
+              >
+                Uses the iPod play count to submit multiple scrobbles for the
+                same track. The count is accurate, but the iPod only stores one
+                timestamp, so we estimate the others by spacing them out. Exact
+                timing and order may be approximate.
+              </span>
+            </button>
+          </div>
+          <label class="form-switch">
+            <input
+              type="checkbox"
+              v-model="preferences.repeatScrobbles"
+              @change="
+                setPreferences(
+                  'singleConfig',
+                  'repeatScrobbles',
+                  preferences.repeatScrobbles
                 )
               "
             />
@@ -252,12 +345,94 @@ onMounted(async () => {})
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 27px;
-  padding: 4px 0 4px 0;
+  min-height: 34px;
+  padding: 6px 0;
   background-color: white;
   font-family: 'Barlow-Regular', sans-serif;
   font-size: 14px;
   border-bottom: 1px solid var(--lightgrey); /* Add this line */
+}
+
+.settings-item-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.info-button {
+  position: relative;
+  appearance: none;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(11, 18, 21, 0.15);
+  background: rgba(11, 18, 21, 0.04);
+  color: rgba(11, 18, 21, 0.65);
+  font-size: 11px;
+  line-height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: help;
+  font-family: 'Barlow-Regular', sans-serif;
+}
+
+.info-button:hover {
+  border-color: rgba(11, 18, 21, 0.35);
+  background: rgba(11, 18, 21, 0.08);
+  color: rgba(11, 18, 21, 0.8);
+}
+
+.info-button:focus-visible {
+  outline: 2px solid rgba(1, 125, 199, 0.4);
+  outline-offset: 2px;
+}
+
+.info-tooltip {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  transform: translate(-50%, 6px);
+  min-width: 200px;
+  max-width: 260px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background-color: rgba(11, 18, 21, 0.96);
+  color: white;
+  font-family: 'Barlow-Regular', sans-serif;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 8px 20px rgba(11, 18, 21, 0.25);
+}
+
+.info-tooltip::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent rgb(11, 18, 21) transparent;
+}
+
+.info-button:hover .info-tooltip,
+.info-button:focus-visible .info-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
 }
 
 .settings-group .settings-item:last-child {

@@ -41,12 +41,14 @@
       @getNewTracks="getTracklist"
       @clearPlayCounts="clearPlayCounts(true)"
       @scrobbleNewTracks="scrobbleNewTracks"
+      @ejectDevice="handleEjectDevice"
       @openSettings="toggleSettings"
       :is-loading="isLoading"
       :is-uploading="isUploading"
+      :is-ejecting="isEjecting"
     />
     <div class="content">
-      <component :is="renderComponent.component" />
+      <component :is="renderComponent.component" v-bind="renderComponent.props" />
     </div>
   </div>
 </template>
@@ -83,15 +85,20 @@ import { useTracklist } from './composables/useTracklist.js'
 const {
   tracklist,
   selectedTracklist,
-  playtime,
   scrobbled,
+  scanSummary,
+  lastSync,
   updateTracklist,
   clearScrobbled,
+  setScrobbledSummary,
+  setScanSummary,
+  clearScanSummary,
+  setLastSync,
   clearTracklist
 } = useTracklist()
 
 import { usePrefs } from './composables/usePrefs.js'
-const { preferences, getPreferences } = usePrefs()
+const { preferences, getPreferences, setPreferences } = usePrefs()
 
 import { useTrackStatuses } from './composables/useTrackStatuses.js'
 const { trackStatuses, addTrackStatus, updateTrackStatus } = useTrackStatuses()
@@ -101,103 +108,388 @@ import {
   scrobbleTracks,
   scrobbleTracksIndividually,
   login,
-  connectLastFm
+  connectLastFm,
+  filterTracksForLedger,
+  countAlreadySyncedPlays
 } from './utils/lastfm.js'
 
 const isLoading = ref(false)
 const isUploading = ref(false)
+const isEjecting = ref(false)
 const settingsMenu = ref(false)
 
 const processing = ref(false)
+const missingDevicePathNotified = ref(false)
+const ledgerCalloutDismissed = ref(false)
+
+const debugEnabled = import.meta.env.DEV
+const logDebug = (...args) => {
+  if (debugEnabled) {
+    console.log('[debug]', ...args)
+  }
+}
+const toPlainObject = value => {
+  try {
+    return JSON.parse(JSON.stringify(value ?? {}))
+  } catch (error) {
+    console.error('Error serializing value:', error)
+    return {}
+  }
+}
 
 const path = ref()
+let isPolling = false
+const hasScanned = ref(false)
+const scanStatus = ref('')
+const uploadStatus = ref('')
+
+const updatePathFromPrefs = () => {
+  if (!preferences.devicePath) {
+    path.value = ''
+    return
+  }
+  const trimmed = preferences.devicePath.replace(/[\\/]+$/, '')
+  path.value = `${trimmed}/iPod_Control/iTunes/`
+  missingDevicePathNotified.value = false
+}
+
+const ensureDevicePath = () => {
+  if (!preferences.devicePath || !path.value) {
+    if (!missingDevicePathNotified.value) {
+      showErrorPopup('Device path not set. Please select your iPod in Settings.')
+      missingDevicePathNotified.value = true
+      settingsMenu.value = true
+    }
+    setDeviceState('not-connected')
+    return false
+  }
+  return true
+}
+
+const showScrobbleSummary = computed(() => {
+  if (scrobbled.state) {
+    return true
+  }
+  if (!hasScanned.value) {
+    return false
+  }
+  if (lastSync.tracks <= 0) {
+    return false
+  }
+  if (!scanSummary.scannedAt) {
+    return true
+  }
+  return lastSync.syncedAt >= scanSummary.scannedAt
+})
+
+const dismissLedgerCallout = reason => {
+  ledgerCalloutDismissed.value = true
+  logDebug('ledger callout dismissed', { reason })
+}
+
+const resetLedgerCallout = () => {
+  ledgerCalloutDismissed.value = false
+}
+
+const handleClearPlayCounts = async () => {
+  dismissLedgerCallout('clear')
+  logDebug('clear play counts requested')
+  await clearPlayCounts(false)
+}
+
+const handleEjectDevice = async () => {
+  if (isEjecting.value) {
+    return
+  }
+  if (!ensureDevicePath()) {
+    return
+  }
+  isEjecting.value = true
+  processing.value = true
+  logDebug('eject device start')
+  try {
+    const result = await window.ipc.ejectDevice(preferences.devicePath)
+    if (!result?.status) {
+      showErrorPopup(result?.message || 'Unable to eject the iPod.')
+      return
+    }
+    logDebug('eject device success')
+  } catch (error) {
+    console.error('Error ejecting device:', error)
+    showErrorPopup('Unable to eject the iPod.')
+  } finally {
+    isEjecting.value = false
+    processing.value = false
+    await getDeviceState()
+  }
+}
+
+const getDeviceKey = () => {
+  if (!preferences.devicePath) {
+    logDebug('deviceKey missing devicePath')
+    return ''
+  }
+  return preferences.devicePath.replace(/[\\/]+$/, '')
+}
+
+const getDeviceLedger = () => {
+  const deviceKey = getDeviceKey()
+  if (!deviceKey) {
+    logDebug('getDeviceLedger no deviceKey')
+    return {}
+  }
+  return preferences.syncLedger?.[deviceKey]?.tracks || {}
+}
+
+const updateDeviceLedger = async ledgerUpdates => {
+  if (!ledgerUpdates || Object.keys(ledgerUpdates).length === 0) {
+    logDebug('updateDeviceLedger no updates')
+    return
+  }
+  const deviceKey = getDeviceKey()
+  if (!deviceKey) {
+    logDebug('updateDeviceLedger missing deviceKey')
+    return
+  }
+  const syncLedger = preferences.syncLedger || {}
+  const deviceLedger = syncLedger[deviceKey]?.tracks || {}
+  const updatedAt = Math.floor(Date.now() / 1000)
+  const updatedTracks = {
+    ...toPlainObject(deviceLedger),
+    ...toPlainObject(ledgerUpdates)
+  }
+  logDebug('updateDeviceLedger', {
+    deviceKey,
+    updates: Object.keys(ledgerUpdates).length,
+    total: Object.keys(updatedTracks).length
+  })
+  try {
+    await setPreferences('singleConfig', 'syncLedger', {
+      [deviceKey]: { tracks: updatedTracks, updatedAt }
+    })
+  } catch (error) {
+    console.error('Error updating sync ledger:', error)
+    showErrorPopup(
+      'Scrobbles sent, but the local ledger could not be updated. You may see duplicates next sync.'
+    )
+  }
+}
+
+const clearDeviceLedger = async () => {
+  const deviceKey = getDeviceKey()
+  if (!deviceKey) {
+    logDebug('clearDeviceLedger missing deviceKey')
+    return
+  }
+  const updatedAt = Math.floor(Date.now() / 1000)
+  logDebug('clearDeviceLedger', { deviceKey })
+  try {
+    await setPreferences('singleConfig', 'syncLedger', {
+      [deviceKey]: { tracks: {}, updatedAt }
+    })
+  } catch (error) {
+    console.error('Error clearing sync ledger:', error)
+  }
+}
+
+const calculatePlaytimeFromScrobbles = scrobbles => {
+  return scrobbles.reduce((acc, track) => {
+    if (!Number.isFinite(track.length)) {
+      return acc
+    }
+    return acc + Math.floor(track.length / 1000)
+  }, 0)
+}
 
 // render the component based on the current state
 const renderComponent = computed(() => {
+  logDebug('renderComponent', {
+    deviceState: deviceState.value,
+    isLoading: isLoading.value,
+    isUploading: isUploading.value,
+    trackCount: tracklist.length,
+    scrobbledTracks: scrobbled.tracks,
+    scrobbledState: scrobbled.state,
+    hasScanned: hasScanned.value
+  })
   if (isLoading.value) {
     return {
-      component: LoadingView
+      component: LoadingView,
+      props: { message: scanStatus.value }
     }
   } else if (isUploading.value) {
     return {
-      component: UploadingView
+      component: UploadingView,
+      props: { message: uploadStatus.value }
     }
   } else {
     if (deviceState.value === 'not-connected') {
       return {
-        component: NotConnected
+        component: NotConnected,
+        props: {}
       }
     } else if (deviceState.value === 'ready') {
-      if (tracklist.length === 0 && scrobbled.tracks === 0) {
+      if (tracklist.length > 0) {
         return {
-          component: ReadyToSync
+          component: RecentTracks,
+          props: {}
         }
-      } else if (tracklist.length > 0) {
+      } else if (showScrobbleSummary.value) {
         return {
-          component: RecentTracks
-        }
-      } else if (scrobbled.state) {
-        return {
-          component: LibraryScrobbled
-        }
-      }
-    } else if (deviceState.value === 'no-plays') {
-      if (scrobbled.state) {
-        return {
-          component: LibraryScrobbled
+          component: LibraryScrobbled,
+          props: {
+            onClearPlayCounts: handleClearPlayCounts,
+            onDismissLedgerCallout: () => dismissLedgerCallout('keep'),
+            calloutDismissed: ledgerCalloutDismissed.value
+          }
         }
       } else {
         return {
-          component: UpToDate
+          component: hasScanned.value ? UpToDate : ReadyToSync,
+          props: hasScanned.value
+            ? {
+                onClearPlayCounts: handleClearPlayCounts,
+                onDismissLedgerCallout: () => dismissLedgerCallout('keep'),
+                calloutDismissed: ledgerCalloutDismissed.value
+              }
+            : {}
+        }
+      }
+    } else if (deviceState.value === 'no-plays') {
+      if (showScrobbleSummary.value) {
+        return {
+          component: LibraryScrobbled,
+          props: {
+            onClearPlayCounts: handleClearPlayCounts,
+            onDismissLedgerCallout: () => dismissLedgerCallout('keep'),
+            calloutDismissed: ledgerCalloutDismissed.value
+          }
+        }
+      } else {
+        return {
+          component: UpToDate,
+          props: {
+            onClearPlayCounts: handleClearPlayCounts,
+            onDismissLedgerCallout: () => dismissLedgerCallout('keep'),
+            calloutDismissed: ledgerCalloutDismissed.value
+          }
         }
       }
     }
   }
   return {
-    component: LoadingView
+    component: LoadingView,
+    props: { message: scanStatus.value }
   }
 })
 
 // get the tracklist from the iPod
 const getTracklist = async () => {
+  if (processing.value || isLoading.value || isUploading.value) {
+    logDebug('getTracklist skipped', {
+      processing: processing.value,
+      isLoading: isLoading.value,
+      isUploading: isUploading.value
+    })
+    return
+  }
+  if (!ensureDevicePath()) {
+    processing.value = false
+    return
+  }
   console.log('Getting Tracklist')
+  logDebug('getTracklist start', { deviceState: deviceState.value })
   processing.value = true
   await getDeviceState()
   await clearTracklist()
   await clearScrobbled()
+  clearScanSummary()
   try {
+    if (deviceState.value !== 'ready') {
+      const scannedAt = Math.floor(Date.now() / 1000)
+      setScanSummary(0, 0, scannedAt, false)
+      hasScanned.value = true
+      logDebug('getTracklist no plays or not ready', {
+        deviceState: deviceState.value,
+        scannedAt
+      })
+      processing.value = false
+      return
+    }
     // only get the library when the device is ready and not loading
     if (!isLoading.value && deviceState.value === 'ready') {
       isLoading.value = true
+      scanStatus.value = 'Reading iPod database...'
       const receivedRecentTracks = await window.ipc.readFile(
         path.value,
         'getLibrary'
       )
-      updateTracklist(receivedRecentTracks)
+      const scannedAt = Math.floor(Date.now() / 1000)
+      logDebug('getTracklist readLibrary', {
+        receivedTracks: receivedRecentTracks?.length || 0
+      })
+      scanStatus.value = 'Checking plays against ledger...'
+      const deviceLedger = getDeviceLedger()
+      const filteredTracks = filterTracksForLedger(
+        receivedRecentTracks,
+        deviceLedger
+      )
+      updateTracklist(filteredTracks)
+      const alreadySyncedPlays = countAlreadySyncedPlays(
+        receivedRecentTracks,
+        deviceLedger
+      )
+      setScanSummary(alreadySyncedPlays, filteredTracks.length, scannedAt, true)
+      logDebug('getTracklist summary', {
+        filteredTracks: filteredTracks.length,
+        alreadySyncedPlays,
+        scannedAt
+      })
+      const trackCount = filteredTracks.length
+      scanStatus.value = trackCount > 0
+        ? `Found ${trackCount} track${trackCount !== 1 ? 's' : ''} to sync.`
+        : 'No new plays found.'
+      hasScanned.value = true
+      logDebug('getTracklist complete', {
+        hasScanned: hasScanned.value,
+        autoUpload: preferences.autoUpload
+      })
       // if (tracklist.length === 0) {
       //   processing.value = false
       // }
       isLoading.value = false
       // if the autoUpload is enabled, scrobble the new tracks
-      if (preferences.autoUpload) {
-        scrobbleNewTracks()
+      if (preferences.autoUpload && filteredTracks.length > 0) {
+        await scrobbleNewTracks()
+      } else {
+        processing.value = false
       }
     } else {
       processing.value = false
     }
   } catch (error) {
+    console.error('Error getting tracklist:', error)
     showErrorPopup(
       'Error getting Tracks from device. Maybe the Play Count file is corrupted?'
     )
+    isLoading.value = false
+    processing.value = false
   }
 }
 
 const clearPlayCounts = async resetScrobbled => {
+  if (!ensureDevicePath()) {
+    return
+  }
   console.log('Clearing Playcounts')
+  logDebug('clearPlayCounts start', { resetScrobbled })
   const deletedFile = await window.ipc.deletePlaycount(path.value)
   if (deletedFile) {
     console.log('Deleted Playcounts')
+    logDebug('clearPlayCounts success')
     await clearTracklist()
+    await clearDeviceLedger()
+    clearScanSummary()
     if (resetScrobbled) {
       await clearScrobbled()
     }
@@ -208,24 +500,46 @@ const clearPlayCounts = async resetScrobbled => {
 }
 
 const getDeviceState = async () => {
+  if (!ensureDevicePath()) {
+    return
+  }
   // previousDeviceState is used to check if the device state has changed
   const previousDeviceState = deviceState.value
   const receivedDeviceState = await window.ipc.readFile(
     path.value,
     'getDeviceState'
   )
+  logDebug('getDeviceState', { previousDeviceState, receivedDeviceState })
   if (receivedDeviceState === 'not-connected') {
     setDeviceState('not-connected')
+    if (previousDeviceState !== 'not-connected') {
+      logDebug('device disconnected, clearing state')
+      await clearTracklist()
+      await clearScrobbled()
+      hasScanned.value = false
+      clearScanSummary()
+    }
   } else if (receivedDeviceState === 'no-plays') {
     setDeviceState('no-plays')
-    // if the device state changed from ready to no-plays
-    // that means the PlayCount file was deleted by synchronizing the iPod using another App -> clear the playcounts back to default
-    if (previousDeviceState === 'ready' && scrobbled.state === true) {
-      console.log('iPod was synchronized with another App')
-      await clearPlayCounts(true)
+    if (previousDeviceState === 'not-connected') {
+      const scannedAt = Math.floor(Date.now() / 1000)
+      setScanSummary(0, 0, scannedAt, false)
+      hasScanned.value = true
+      logDebug('device no-plays after connect', { scannedAt })
+    }
+    if (previousDeviceState === 'ready') {
+      logDebug('device no-plays, clearing tracklist')
+      await clearTracklist()
     }
   } else if (receivedDeviceState === 'ready') {
     setDeviceState('ready')
+    if (previousDeviceState !== 'ready') {
+      logDebug('device ready, resetting scan state')
+      await clearTracklist()
+      await clearScrobbled()
+      hasScanned.value = false
+      clearScanSummary()
+    }
   }
   // only console.log the device state if it has changed
   if (receivedDeviceState !== previousDeviceState) {
@@ -237,41 +551,148 @@ const toggleSettings = () => {
   settingsMenu.value = !settingsMenu.value
 }
 
-const scrobbleNewTracks = async () => {
-  console.log('Uploading New Tracks')
-  isUploading.value = true
-
-  const { status } = await scrobbleTracks(selectedTracklist)
-
-  if (status) {
-    console.log('Tracks Scrobbled')
-    scrobbled.tracks = selectedTracklist.length
-    scrobbled.playtime = playtime.value
-    await clearTracklist()
-    if (preferences.autoDelete) {
-      await clearPlayCounts(false)
-    }
-  } else {
-    selectedTracklist.forEach(track => {
-      addTrackStatus(track, 'pending')
-    })
-    const failedTracks = await scrobbleTracksIndividually(selectedTracklist, updateTrackStatus)
-    console.log("Some tracks failed",failedTracks)
-    scrobbled.tracks = selectedTracklist.length
-
-    failedTracks.forEach((track) => {
-      const index = selectedTracklist.findIndex(
-        (t) => t.track === track.track && t.artist === track.artist
-      )
-      if (index !== -1) {
-        selectedTracklist.splice(index, 1)
-      }
-    })
+const pollDeviceState = async () => {
+  if (isPolling) {
+    logDebug('pollDeviceState skipped, already polling')
+    return
   }
+  isPolling = true
+  try {
+    await getDeviceState()
+    if (deviceState.value === 'ready' && preferences.autoScan) {
+      if (
+        !hasScanned.value &&
+        !isLoading.value &&
+        !isUploading.value &&
+        tracklist.length === 0 &&
+        scrobbled.state === false
+      ) {
+        logDebug('pollDeviceState triggering autoScan')
+        await getTracklist()
+      } else {
+        logDebug('pollDeviceState autoScan skipped', {
+          hasScanned: hasScanned.value,
+          isLoading: isLoading.value,
+          isUploading: isUploading.value,
+          trackCount: tracklist.length,
+          scrobbledState: scrobbled.state
+        })
+      }
+    } else {
+      logDebug('pollDeviceState autoScan disabled or not ready', {
+        deviceState: deviceState.value,
+        autoScan: preferences.autoScan
+      })
+    }
+  } finally {
+    isPolling = false
+  }
+}
 
-  isUploading.value = false
-  processing.value = false
-  scrobbled.state = true
+const scrobbleNewTracks = async () => {
+  if (isLoading.value || isUploading.value) {
+    logDebug('scrobbleNewTracks skipped', {
+      isLoading: isLoading.value,
+      isUploading: isUploading.value
+    })
+    return
+  }
+  console.log('Uploading New Tracks')
+  processing.value = true
+  isUploading.value = true
+  const trackCount = selectedTracklist.length
+  uploadStatus.value = `Sending ${trackCount} track${trackCount !== 1 ? 's' : ''} to Last.fm...`
+  logDebug('scrobbleNewTracks start', { trackCount })
+
+  try {
+    const deviceLedger = getDeviceLedger()
+    logDebug('scrobbleNewTracks ledger', {
+      ledgerTracks: Object.keys(deviceLedger).length
+    })
+    const { status, scrobbles, skipped, ledgerUpdates } = await scrobbleTracks(
+      selectedTracklist,
+      deviceLedger
+    )
+    logDebug('scrobbleNewTracks batchResult', {
+      status,
+      scrobbles: scrobbles.length,
+      skipped: skipped.length,
+      ledgerUpdates: Object.keys(ledgerUpdates).length
+    })
+
+    if (status) {
+      console.log('Tracks Scrobbled')
+      uploadStatus.value = 'Finalizing sync...'
+      resetLedgerCallout()
+      setScrobbledSummary(scrobbles, skipped)
+      scrobbled.playtime = calculatePlaytimeFromScrobbles(scrobbles)
+      setLastSync(scrobbles, skipped, scrobbled.playtime)
+      await updateDeviceLedger(ledgerUpdates)
+      await clearTracklist()
+      if (preferences.autoDelete) {
+        await clearPlayCounts(false)
+      }
+    } else {
+      if (scrobbles.length === 0 && skipped.length > 0) {
+        showErrorPopup('No valid tracks to scrobble. Missing track metadata.')
+        setScrobbledSummary([], skipped)
+        scrobbled.playtime = 0
+        scrobbled.state = false
+        return
+      }
+      uploadStatus.value = 'Retrying tracks individually...'
+      selectedTracklist.forEach(track => {
+        addTrackStatus(track, 'pending')
+      })
+      const {
+        failedTracks,
+        scrobbles: submittedScrobbles,
+        skipped: skippedTracks,
+        ledgerUpdates: fallbackLedgerUpdates
+      } = await scrobbleTracksIndividually(
+        selectedTracklist,
+        updateTrackStatus,
+        deviceLedger
+      )
+      logDebug('scrobbleNewTracks fallbackResult', {
+        failed: failedTracks.length,
+        scrobbles: submittedScrobbles.length,
+        skipped: skippedTracks.length,
+        ledgerUpdates: Object.keys(fallbackLedgerUpdates).length
+      })
+      console.log('Some tracks failed', failedTracks)
+      resetLedgerCallout()
+      setScrobbledSummary(submittedScrobbles, skippedTracks)
+      scrobbled.playtime = calculatePlaytimeFromScrobbles(submittedScrobbles)
+      setLastSync(submittedScrobbles, skippedTracks, scrobbled.playtime)
+      await updateDeviceLedger(fallbackLedgerUpdates)
+
+      failedTracks.forEach((track) => {
+        const index = selectedTracklist.findIndex(
+          (t) => t.track === track.track && t.artist === track.artist
+        )
+        if (index !== -1) {
+          selectedTracklist.splice(index, 1)
+        }
+      })
+
+      const hasFailures = failedTracks.length > 0 || skippedTracks.length > 0
+      if (preferences.autoDelete && !hasFailures) {
+        await clearPlayCounts(false)
+      }
+    }
+  } catch (error) {
+    console.error('Error uploading tracks:', error)
+    showErrorPopup('Error uploading tracks. Please try again.')
+  } finally {
+    logDebug('scrobbleNewTracks finalize', {
+      scrobbledTracks: scrobbled.tracks,
+      scrobbledState: scrobbled.state
+    })
+    isUploading.value = false
+    processing.value = false
+    scrobbled.state = scrobbled.tracks > 0
+  }
 }
 
 async function checkProfile () {
@@ -308,9 +729,11 @@ async function handleLogin () {
 
 onMounted(async () => {
   await getPreferences('fullConfig')
+  updatePathFromPrefs()
+  ensureDevicePath()
 
   await checkProfile()
-  path.value = preferences.devicePath + '/iPod_Control/iTunes/'
+  await pollDeviceState()
 
   let intervalId = null
 
@@ -321,18 +744,7 @@ onMounted(async () => {
   const startInterval = () => {
     intervalId = setInterval(() => {
       if (!settingsMenu.value && !processing.value) {
-        if (
-          deviceState.value === 'not-connected' ||
-          deviceState.value === 'no-plays'
-        ) {
-          getDeviceState()
-        } else if (deviceState.value === 'ready' && preferences.autoScan) {
-          if (scrobbled.state === false) {
-            getTracklist()
-          } else {
-            getDeviceState()
-          }
-        }
+        pollDeviceState()
       }
     }, 2500)
   }
@@ -343,6 +755,16 @@ onMounted(async () => {
     stopInterval(intervalId)
     startInterval()
   })
+
+  watch(
+    () => preferences.devicePath,
+    () => {
+      updatePathFromPrefs()
+      if (!preferences.devicePath) {
+        ensureDevicePath()
+      }
+    }
+  )
 })
 </script>
 

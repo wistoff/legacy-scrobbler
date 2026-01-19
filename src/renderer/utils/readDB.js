@@ -1,9 +1,17 @@
 const { open } = require('fs/promises')
 
+const debugEnabled = process.env.NODE_ENV !== 'production'
+const logDebug = (...args) => {
+  if (debugEnabled) {
+    console.log('[debug]', ...args)
+  }
+}
+
 async function parseItunesDb (filePath) {
   let tracklist = []
   try {
     console.log('Reading iTunesDB file:', filePath)
+    logDebug('parseItunesDb start', { filePath })
     const handler = await open(filePath, 'r')
 
     let totalBytesRead = 0
@@ -38,6 +46,7 @@ async function parseItunesDb (filePath) {
       await handler.close()
       console.log('File handler library closed successfully.')
     }
+    logDebug('parseItunesDb complete', { tracks: tracklist.length })
   } catch (error) {
     console.error('Error:', error)
     throw error
@@ -170,6 +179,7 @@ function littleEndianToBigInt (byteArray) {
 async function parsePlayCounts (filePath, tracklist) {
   try {
     console.log('Reading "Play Counts" file:', filePath)
+    logDebug('parsePlayCounts start', { filePath })
 
     const handler = await open(filePath, 'r')
 
@@ -200,6 +210,7 @@ async function parsePlayCounts (filePath, tracklist) {
 
     bytesOffset += 80
 
+    let updatedCount = 0
     for (let i = 0; i < numEntries - 1; i++) {
       let lastPlayedCollection = []
       let savedBytes = bytesOffset
@@ -230,6 +241,7 @@ async function parsePlayCounts (filePath, tracklist) {
 
         tracklist[i].playCount = playCount
         tracklist[i].lastPlayed = lastPlayed
+        updatedCount += 1
       }
 
       bytesOffset = savedBytes + entryLen
@@ -238,6 +250,10 @@ async function parsePlayCounts (filePath, tracklist) {
       await handler.close()
       console.log('File handler for play counts closed successfully.')
     }
+    logDebug('parsePlayCounts complete', {
+      entries: numEntries,
+      updatedCount
+    })
   } catch (error) {
     console.error('Error:', error)
   }
@@ -252,6 +268,10 @@ export async function getRecentTracks (path) {
     entry => entry.playCount && entry.playCount > 0
   )
   recentPlays.sort((a, b) => b.lastPlayed - a.lastPlayed)
+  logDebug('getRecentTracks', {
+    totalTracks: tracklist.length,
+    recentPlays: recentPlays.length
+  })
   return recentPlays
 }
 
