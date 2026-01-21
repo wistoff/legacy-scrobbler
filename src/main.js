@@ -111,19 +111,51 @@ const resolveMacVolumePath = devicePath => {
 }
 
 const getTrayIconPath = () => {
-  const iconName = process.platform === 'darwin' ? 'icon.icns' : 'icon.ico'
+  // macOS menu bar needs a small template image, not the full app icon
+  const iconName = process.platform === 'darwin' ? 'trayTemplate.png' : 'icon.ico'
   const appPathIcon = path.join(app.getAppPath(), 'images', iconName)
   if (existsSync(appPathIcon)) {
     return appPathIcon
   }
-  return path.join(process.resourcesPath, 'images', iconName)
+  // Fallback to resources path for packaged app
+  const resourcesIcon = path.join(process.resourcesPath, 'images', iconName)
+  if (existsSync(resourcesIcon)) {
+    return resourcesIcon
+  }
+  // Final fallback to regular icon
+  const fallbackName = process.platform === 'darwin' ? 'icon.icns' : 'icon.ico'
+  const fallbackPath = path.join(app.getAppPath(), 'images', fallbackName)
+  if (existsSync(fallbackPath)) {
+    return fallbackPath
+  }
+  return path.join(process.resourcesPath, 'images', fallbackName)
 }
 
 const getTrayIcon = () => {
   const iconPath = getTrayIconPath()
-  const icon = nativeImage.createFromPath(iconPath)
+  let icon = nativeImage.createFromPath(iconPath)
   if (icon.isEmpty()) {
     logDebug('tray icon missing or invalid', { iconPath })
+  }
+  // Mark as template image for macOS (allows automatic dark/light mode adaptation)
+  if (process.platform === 'darwin') {
+    const retinaPath = iconPath.replace(/\.png$/i, '@2x.png')
+    if (retinaPath !== iconPath && existsSync(retinaPath)) {
+      const retinaIcon = nativeImage.createFromPath(retinaPath)
+      if (!retinaIcon.isEmpty()) {
+        if (icon.isEmpty()) {
+          icon = retinaIcon
+        } else {
+          icon.addRepresentation({
+            scaleFactor: 2,
+            dataURL: retinaIcon.toDataURL()
+          })
+        }
+      } else {
+        logDebug('retina tray icon missing or invalid', { retinaPath })
+      }
+    }
+    icon.setTemplateImage(true)
   }
   return icon
 }
@@ -244,10 +276,8 @@ const createTray = () => {
   const icon = getTrayIcon()
   tray = new Tray(icon.isEmpty() ? getTrayIconPath() : icon)
   updateTrayTooltip()
-  tray.on('click', () => {
-    showMainWindow()
-  })
-  tray.setContextMenu(Menu.buildFromTemplate([
+
+  const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Open',
       click: () => showMainWindow()
@@ -266,7 +296,17 @@ const createTray = () => {
         app.quit()
       }
     }
-  ]))
+  ])
+
+  tray.setContextMenu(contextMenu)
+
+  // On Windows, clicking tray icon opens the window
+  // On macOS, clicking shows the context menu (default behavior)
+  if (process.platform !== 'darwin') {
+    tray.on('click', () => {
+      showMainWindow()
+    })
+  }
 }
 
 const buildDeviceBasePath = devicePath => {
