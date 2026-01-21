@@ -260,10 +260,8 @@ const createTray = () => {
   const icon = getTrayIcon()
   tray = new Tray(icon.isEmpty() ? getTrayIconPath() : icon)
   updateTrayTooltip()
-  tray.on('click', () => {
-    showMainWindow()
-  })
-  tray.setContextMenu(Menu.buildFromTemplate([
+
+  const contextMenu = Menu.buildFromTemplate([
     {
       label: 'Open',
       click: () => showMainWindow()
@@ -282,7 +280,17 @@ const createTray = () => {
         app.quit()
       }
     }
-  ]))
+  ])
+
+  tray.setContextMenu(contextMenu)
+
+  // On Windows, clicking tray icon opens the window
+  // On macOS, clicking shows the context menu (default behavior)
+  if (process.platform !== 'darwin') {
+    tray.on('click', () => {
+      showMainWindow()
+    })
+  }
 }
 
 const buildDeviceBasePath = devicePath => {
