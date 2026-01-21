@@ -1,14 +1,25 @@
 # Legacy Scrobbler Changelog
 
-## Version 1.0.3 - Repeat Scrobbles and Sync Improvements (2026-01-18)
+## Version 1.0.3 - Tray Mode, Dark Mode & Repeat Scrobbles (2026-01-21)
 
-- Added optional repeat scrobbling with de-conflicted timestamps.
-- Added a per-device sync ledger (with last-played tracking) to avoid duplicates.
-- Added post-sync scrobble summary with submitted/skipped lists and last-sync history.
-- Added scan/upload status messaging, friendly loading phrases, and improved up-to-date view.
-- Added manual safe-eject button (Windows/macOS) and clearer device-path errors.
-- Added settings tooltips plus post-sync guidance to clear Play Counts when desired.
-- Improved Play Counts deletion handling and device state refresh after sync.
+### New Features
+- **Tray mode**: App now runs in the system tray with headless startup, reducing memory usage. Click the tray icon to open the window.
+- **Background device detection**: Detects iPod connections while running in the background and prompts to start scrobbling.
+- **Dark mode**: Toggle between light and dark themes with preference saving.
+- **Repeat scrobbling**: Tracks played multiple times now scrobble correctly with de-conflicted timestamps. Play count badges (e.g., "3x") shown in track list.
+- **Per-device sync ledger**: Prevents re-scrobbling by tracking last-played timestamps per device.
+- **Offline support**: Network connectivity detection with offline banner and tap-to-retry for failed scrobbles.
+- **Safe eject button**: Manual eject for Windows and macOS.
+
+### Improvements
+- Scan progress indicator showing track count and percentage during database read.
+- Tray tooltip displays "Last scrobbled" timestamp.
+- Single-instance lock prevents duplicate background processes.
+- Settings tooltips for better understanding.
+- Improved device-path error handling.
+
+### Dependencies
+- Electron 24 → 39, Vite 4 → 6, Vue 3.2 → 3.5
 
 ## Version 1.0.2 - Improved Handling of Failed Scrobbles
 
