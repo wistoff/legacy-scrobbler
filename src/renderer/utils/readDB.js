@@ -7,14 +7,19 @@ const logDebug = (...args) => {
   }
 }
 
-async function parseItunesDb (filePath) {
+async function parseItunesDb (filePath, onProgress) {
   let tracklist = []
   try {
     console.log('Reading iTunesDB file:', filePath)
     logDebug('parseItunesDb start', { filePath })
     const handler = await open(filePath, 'r')
 
+    // Get file size for progress calculation
+    const stats = await handler.stat()
+    const fileSize = stats.size
+
     let totalBytesRead = 0
+    let lastProgressUpdate = 0
 
     const bufferSize = 1 * 1024 * 1024 // 1 MB buffer size
 
@@ -38,6 +43,21 @@ async function parseItunesDb (filePath) {
         }
       }
       totalBytesRead += bytesRead
+
+      // Report progress every 500ms or when complete
+      const now = Date.now()
+      if (onProgress && (now - lastProgressUpdate >= 500 || bytesRead < bufferSize)) {
+        const percent = fileSize > 0 ? Math.round((totalBytesRead / fileSize) * 100) : 0
+        onProgress({
+          phase: 'library',
+          tracksFound: tracklist.length,
+          bytesRead: totalBytesRead,
+          totalBytes: fileSize,
+          percent
+        })
+        lastProgressUpdate = now
+      }
+
       if (bytesRead < bufferSize) {
         break // End of file reached
       }
@@ -210,8 +230,28 @@ async function parsePlayCounts (filePath, tracklist) {
 
     bytesOffset += 80
 
+    // Validate entry counts match between Play Counts and iTunesDB
+    const expectedEntries = tracklist.length
+    if (numEntries !== expectedEntries && numEntries !== expectedEntries + 1) {
+      console.warn(
+        `[readDB] Play Counts/iTunesDB mismatch: Play Counts has ${numEntries} entries, iTunesDB has ${expectedEntries} tracks`
+      )
+      logDebug('parsePlayCounts mismatch', {
+        playCountsEntries: numEntries,
+        iTunesDbTracks: expectedEntries,
+        delta: numEntries - expectedEntries
+      })
+    }
+
     let updatedCount = 0
+    let skippedOutOfBounds = 0
     for (let i = 0; i < numEntries - 1; i++) {
+      // Bounds check: ensure we have a corresponding track in iTunesDB
+      if (i >= tracklist.length) {
+        skippedOutOfBounds++
+        bytesOffset += entryLen
+        continue
+      }
       let lastPlayedCollection = []
       let savedBytes = bytesOffset
       const playCountArray = await readBytesAtPosition(
@@ -250,19 +290,27 @@ async function parsePlayCounts (filePath, tracklist) {
       await handler.close()
       console.log('File handler for play counts closed successfully.')
     }
+    // Log summary including any skipped entries
+    if (skippedOutOfBounds > 0) {
+      console.warn(
+        `[readDB] Skipped ${skippedOutOfBounds} Play Counts entries (out of bounds)`
+      )
+    }
     logDebug('parsePlayCounts complete', {
       entries: numEntries,
-      updatedCount
+      tracksInDb: tracklist.length,
+      updatedCount,
+      skippedOutOfBounds
     })
   } catch (error) {
     console.error('Error:', error)
   }
 }
 
-export async function getRecentTracks (path) {
+export async function getRecentTracks (path, onProgress) {
   const iTunesDbPath = path + 'iTunesDB'
   const playCountsPath = path + 'Play Counts'
-  const tracklist = await parse(iTunesDbPath, playCountsPath)
+  const tracklist = await parse(iTunesDbPath, playCountsPath, onProgress)
 
   const recentPlays = tracklist.filter(
     entry => entry.playCount && entry.playCount > 0
@@ -272,11 +320,32 @@ export async function getRecentTracks (path) {
     totalTracks: tracklist.length,
     recentPlays: recentPlays.length
   })
+
+  // Final progress update with play counts phase complete
+  if (onProgress) {
+    onProgress({
+      phase: 'complete',
+      tracksFound: tracklist.length,
+      recentPlays: recentPlays.length,
+      percent: 100
+    })
+  }
+
   return recentPlays
 }
 
-export async function parse (iTunesDbPath, playCountsPath) {
-  const tracklist = await parseItunesDb(iTunesDbPath)
+export async function parse (iTunesDbPath, playCountsPath, onProgress) {
+  const tracklist = await parseItunesDb(iTunesDbPath, onProgress)
+
+  // Report starting play counts phase
+  if (onProgress) {
+    onProgress({
+      phase: 'playcounts',
+      tracksFound: tracklist.length,
+      percent: 100
+    })
+  }
+
   await parsePlayCounts(playCountsPath, tracklist)
   return tracklist
 }

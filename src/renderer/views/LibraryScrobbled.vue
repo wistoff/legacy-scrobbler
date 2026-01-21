@@ -193,6 +193,7 @@ img {
   width: 150px;
   opacity: 0.1;
   padding: 10px;
+  filter: var(--icon-filter);
 }
 
 p {
@@ -201,7 +202,7 @@ p {
 
 .list-section {
   margin: 10px 15px 20px 15px;
-  background-color: white;
+  background-color: var(--bg-secondary);
   border-radius: 10px;
   padding: 10px 0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -222,8 +223,8 @@ table {
 }
 
 tr:hover {
-  background-color: rgb(1, 125, 199);
-  color: white;
+  background-color: var(--row-hover-bg);
+  color: var(--row-hover-text);
 }
 
 td {
@@ -258,6 +259,11 @@ td {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
+:root.dark-mode .ledger-callout {
+  background: #3d3520;
+  border-color: rgba(237, 175, 80, 0.3);
+}
+
 .callout-title {
   font-family: 'Barlow-Bold', sans-serif;
   font-size: 14px;
@@ -266,7 +272,7 @@ td {
 
 .ledger-callout p {
   font-size: 13px;
-  color: rgba(11, 18, 21, 0.7);
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -291,9 +297,9 @@ td {
 }
 
 .callout-button.secondary {
-  background: white;
-  color: rgba(11, 18, 21, 0.75);
-  border: 1px solid rgba(11, 18, 21, 0.15);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color-strong);
 }
 
 .callout-button.primary {

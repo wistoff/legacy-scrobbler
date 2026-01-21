@@ -60,8 +60,8 @@ table {
 }
 
 tr:hover {
-  background-color: rgb(1, 125, 199);
-  color: white;
+  background-color: var(--row-hover-bg);
+  color: var(--row-hover-text);
 }
 
 tr:hover .bubble {
@@ -99,15 +99,15 @@ td {
 }
 
 .bubble {
-  border: 1px solid rgb(11, 18, 21);
+  border: 1px solid var(--text-primary);
   border-radius: 20px;
   max-width: 40px;
   padding: 0 3px 0 3px;
 }
 
 .disabled {
-  background-color: #ddd;
-  color: #666;
+  background-color: var(--disabled-bg);
+  color: var(--disabled-text);
   opacity: 0.3;
 }
 </style>

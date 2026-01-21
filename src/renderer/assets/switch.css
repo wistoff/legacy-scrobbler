@@ -32,7 +32,7 @@
   left: 0;
   width: 22px;
   height: 22px;
-  background-color: white;
+  background-color: var(--bg-secondary);
   border-radius: 11px;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.24);
   transform: translate3d(2px, 2px, 0);

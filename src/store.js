@@ -11,6 +11,7 @@ const defaults = {
   autoDelete: false,
   autoUpload: false,
   repeatScrobbles: true,
+  darkMode: false,
   syncLedger: {},
   lastSyncAt: 0,
   devicePath: '/Volumes/iPod',
@@ -22,7 +23,8 @@ const defaults = {
     username: '',
     profilePicture: '',
     registered: ''
-  }
+  },
+  failedScrobbleQueue: []
 }
 
 function readConfigFile () {

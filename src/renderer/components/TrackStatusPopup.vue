@@ -50,7 +50,7 @@
     min-width: 350px;
     min-height: 170px;
     border-radius: 15px;
-    background-color: rgba(255, 255, 250, 0.3);
+    background-color: var(--popup-bg);
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.11),
       0 1px 2px rgba(0, 0, 0, 0.11),
       0 2px 4px rgba(0, 0, 0, 0.11),

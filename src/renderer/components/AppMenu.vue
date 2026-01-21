@@ -61,6 +61,12 @@
       }"
     />
     <img
+      :src="isDarkMode ? sunIcon : moonIcon"
+      :alt="isDarkMode ? 'Light mode' : 'Dark mode'"
+      :title="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+      @click="toggleTheme"
+    />
+    <img
       :src="settingsIcon"
       alt="Settings"
       title="Open settings"
@@ -76,6 +82,8 @@ import settingsIcon from '../assets/icons/settings.svg'
 import uploadIcon from '../assets/icons/upload.svg'
 import eraseIcon from '../assets/icons/erase.svg'
 import ejectIcon from '../assets/icons/eject.svg'
+import sunIcon from '../assets/icons/sun.svg'
+import moonIcon from '../assets/icons/moon.svg'
 import { ref, watch } from 'vue'
 
 import { usePrefs } from '../composables/usePrefs.js'
@@ -86,6 +94,9 @@ const { deviceState } = useStates()
 
 import { useTracklist } from '../composables/useTracklist.js'
 const { tracklist, selectedTracklist } = useTracklist()
+
+import { useTheme } from '../composables/useTheme.js'
+const { isDarkMode, toggleTheme } = useTheme()
 
 // Define props
 const props = defineProps({
@@ -177,7 +188,7 @@ watch(
 <style scoped>
 .header {
   height: 50px;
-  border-bottom: 1.5px solid rgb(11, 18, 21, 0.1);
+  border-bottom: 1.5px solid var(--border-color);
   margin: 0 5px 0 5px;
   padding: 0 0 0 0;
   display: flex;
@@ -188,6 +199,7 @@ watch(
 .header img {
   height: 23px;
   margin: 10px 10px 10px 0;
+  filter: var(--icon-filter);
 }
 
 .header img:not(.disabled) {

@@ -240,8 +240,8 @@ onMounted(async () => {})
 .sidebar {
   width: 330px;
   height: 100vh;
-  background-color: #f2f2f7;
-  box-shadow: -5px -5px 20px rgb(11, 18, 21, 0.2);
+  background-color: var(--bg-primary);
+  box-shadow: -5px -5px 20px var(--shadow-color);
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -250,7 +250,7 @@ onMounted(async () => {})
 .header {
   position: relative;
   height: 50px;
-  border-bottom: 1.5px solid rgb(11, 18, 21, 0.1);
+  border-bottom: 1.5px solid var(--border-color);
   margin: 0 15px 0 15px;
   display: flex;
   font-family: 'Barlow-Regular', sans-serif;
@@ -263,6 +263,7 @@ onMounted(async () => {})
   cursor: pointer;
   position: absolute;
   opacity: 0.5;
+  filter: var(--icon-filter);
 }
 
 .header img:hover {
@@ -347,10 +348,10 @@ onMounted(async () => {})
   align-items: center;
   min-height: 34px;
   padding: 6px 0;
-  background-color: white;
+  background-color: var(--bg-secondary);
   font-family: 'Barlow-Regular', sans-serif;
   font-size: 14px;
-  border-bottom: 1px solid var(--lightgrey); /* Add this line */
+  border-bottom: 1px solid var(--border-color);
 }
 
 .settings-item-label {
@@ -370,9 +371,9 @@ onMounted(async () => {})
   padding: 0;
   margin: 0;
   border-radius: 50%;
-  border: 1px solid rgba(11, 18, 21, 0.15);
-  background: rgba(11, 18, 21, 0.04);
-  color: rgba(11, 18, 21, 0.65);
+  border: 1px solid var(--info-btn-border);
+  background: var(--info-btn-bg);
+  color: var(--info-btn-text);
   font-size: 11px;
   line-height: 16px;
   display: inline-flex;
@@ -384,9 +385,9 @@ onMounted(async () => {})
 }
 
 .info-button:hover {
-  border-color: rgba(11, 18, 21, 0.35);
-  background: rgba(11, 18, 21, 0.08);
-  color: rgba(11, 18, 21, 0.8);
+  border-color: var(--border-color-strong);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .info-button:focus-visible {
@@ -403,8 +404,8 @@ onMounted(async () => {})
   max-width: 260px;
   padding: 8px 10px;
   border-radius: 8px;
-  background-color: rgba(11, 18, 21, 0.96);
-  color: white;
+  background-color: var(--tooltip-bg);
+  color: var(--tooltip-text);
   font-family: 'Barlow-Regular', sans-serif;
   font-size: 12px;
   line-height: 1.3;
@@ -444,7 +445,7 @@ onMounted(async () => {})
   padding: 6px 15px 6px 15px;
   display: flex;
   flex-direction: column;
-  background-color: white;
+  background-color: var(--bg-secondary);
   border-radius: 10px;
 }
 
@@ -455,7 +456,7 @@ onMounted(async () => {})
   min-height: 27px;
   padding: 4px 15px 4px 15px;
   margin: 10px 0 0 0;
-  background-color: white;
+  background-color: var(--bg-secondary);
   border-radius: 10px;
   cursor: pointer;
   font-family: 'Barlow-Regular', sans-serif;
@@ -468,7 +469,7 @@ p {
 }
 
 .settings-button:hover {
-  background-color: var(--lightgrey);
+  background-color: var(--bg-tertiary);
 }
 
 .param-button {
@@ -478,7 +479,7 @@ p {
   min-height: 27px;
   padding: 8px 15px 8px 15px;
   margin: 10px 0 0 0;
-  background-color: white;
+  background-color: var(--bg-secondary);
   border-radius: 10px;
   cursor: pointer;
 }
@@ -491,10 +492,10 @@ p {
 .param-button p:last-child {
   font-family: 'Barlow-Regular', sans-serif;
   font-size: 14px;
-  color: var(--grey);
+  color: var(--text-muted);
 }
 
 .param-button:hover {
-  background-color: var(--lightgrey);
+  background-color: var(--bg-tertiary);
 }
 </style>

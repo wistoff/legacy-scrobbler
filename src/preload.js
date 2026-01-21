@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('ipc', {
   showNotification: (title, body) =>
     ipcRenderer.invoke('notify:sync', { title, body }),
   onSyncPrompt: (handler) => ipcRenderer.on('sync:prompt', handler),
+  onScanProgress: (handler) => ipcRenderer.on('scan:progress', handler),
   readConfig: (action, key) =>
     ipcRenderer.invoke('read:config', { action, key }),
   writeConfig: (action, key, value) =>

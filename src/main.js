@@ -13,13 +13,44 @@ const {
 const path = require('path')
 const store = require('./store')
 const fs = require('fs')
-const { execFile } = require('child_process')
+const { execFile, spawn } = require('child_process')
 const { existsSync } = fs
 import { getRecentTracks } from './renderer/utils/readDB.js'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require('electron-squirrel-startup')) {
-  app.quit()
+// Inlined from electron-squirrel-startup to avoid bundling issues
+const handleSquirrelEvent = () => {
+  if (process.platform !== 'win32') {
+    return false
+  }
+  const squirrelCommand = process.argv[1]
+  if (!squirrelCommand) {
+    return false
+  }
+  const target = path.basename(process.execPath)
+  const updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'Update.exe')
+
+  const executeSquirrelCommand = (args, done) => {
+    spawn(updateDotExe, args, { detached: true }).on('close', done)
+  }
+
+  switch (squirrelCommand) {
+    case '--squirrel-install':
+    case '--squirrel-updated':
+      executeSquirrelCommand(['--createShortcut=' + target], app.quit)
+      return true
+    case '--squirrel-uninstall':
+      executeSquirrelCommand(['--removeShortcut=' + target], app.quit)
+      return true
+    case '--squirrel-obsolete':
+      app.quit()
+      return true
+  }
+  return false
+}
+
+if (handleSquirrelEvent()) {
+  // Don't run the app, squirrel is handling it
 }
 
 app.disableHardwareAcceleration()
@@ -365,6 +396,9 @@ app.on('ready', async () => {
   createTray()
   startBackgroundMonitor()
 
+  // Show window on first launch
+  showMainWindow()
+
   session.defaultSession.webRequest.onHeadersReceived(
     { urls: ['<all_urls>'] },
     (details, callback) => {
@@ -449,7 +483,12 @@ async function handleReadFile (event, { path, action }) {
       }
     } else if (action === 'getLibrary') {
       logDebug('getLibrary', { path })
-      const recentTracks = await getRecentTracks(path)
+      const onProgress = progress => {
+        if (mainWindow && mainWindow.webContents) {
+          mainWindow.webContents.send('scan:progress', progress)
+        }
+      }
+      const recentTracks = await getRecentTracks(path, onProgress)
       return recentTracks
     }
   } catch (error) {

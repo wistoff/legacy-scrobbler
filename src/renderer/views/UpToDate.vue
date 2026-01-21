@@ -126,7 +126,7 @@ const formatTimestamp = timestamp => {
   margin-top: 12px;
   width: 100%;
   max-width: 420px;
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 10px;
   padding: 10px 12px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -143,7 +143,7 @@ table {
   margin-top: 8px;
   max-height: 180px;
   overflow-y: auto;
-  border-top: 1px solid rgba(11, 18, 21, 0.08);
+  border-top: 1px solid var(--border-color);
   padding-top: 6px;
 }
 
@@ -152,7 +152,7 @@ table {
 }
 
 .last-sync-list::-webkit-scrollbar-thumb {
-  background: rgba(11, 18, 21, 0.15);
+  background: var(--border-color-strong);
   border-radius: 999px;
 }
 
@@ -184,7 +184,7 @@ td {
 .scan-complete {
   margin-top: 6px;
   font-size: 13px;
-  color: var(--grey);
+  color: var(--text-muted);
 }
 
 .ledger-callout {
@@ -199,6 +199,11 @@ td {
   text-align: left;
 }
 
+:root.dark-mode .ledger-callout {
+  background: #3d3520;
+  border-color: rgba(237, 175, 80, 0.3);
+}
+
 .callout-title {
   font-family: 'Barlow-Bold', sans-serif;
   font-size: 14px;
@@ -207,7 +212,7 @@ td {
 
 .ledger-callout p {
   font-size: 13px;
-  color: rgba(11, 18, 21, 0.7);
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -233,9 +238,9 @@ td {
 }
 
 .callout-button.secondary {
-  background: white;
-  color: rgba(11, 18, 21, 0.75);
-  border: 1px solid rgba(11, 18, 21, 0.15);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color-strong);
 }
 
 .callout-button.primary {
@@ -243,5 +248,3 @@ td {
   color: #2d1d00;
 }
 </style>
-
-<style scoped></style>

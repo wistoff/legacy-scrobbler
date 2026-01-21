@@ -2,18 +2,38 @@
   <div class="content-view">
     <img class="spinning" :src="refreshIcon" />
     <p v-if="displayMessage" class="status-text">{{ displayMessage }}</p>
+    <p v-if="progressText" class="progress-text">{{ progressText }}</p>
   </div>
 </template>
 
 <script setup>
 import refreshIcon from '../assets/icons/refresh.svg'
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, watch, computed, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   message: {
     type: String,
     default: ''
+  },
+  progress: {
+    type: Object,
+    default: null
   }
+})
+
+const progressText = computed(() => {
+  if (!props.progress) {
+    return ''
+  }
+  const { phase, tracksFound, percent } = props.progress
+  if (phase === 'library') {
+    return `${tracksFound.toLocaleString()} tracks found • ${percent}%`
+  } else if (phase === 'playcounts') {
+    return `Checking play counts for ${tracksFound.toLocaleString()} tracks...`
+  } else if (phase === 'complete') {
+    return ''
+  }
+  return ''
 })
 
 const baseMessage = 'Reading iPod database...'
@@ -96,7 +116,8 @@ onBeforeUnmount(() => {
 
 img {
   width: 150px;
-  opacity: 0.05;
+  opacity: 0.1;
+  filter: var(--icon-filter);
 }
 
 .status-text {
@@ -104,5 +125,13 @@ img {
   font-size: 14px;
   color: var(--grey);
   text-align: center;
+}
+
+.progress-text {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  font-family: 'Barlow-Regular', sans-serif;
 }
 </style>

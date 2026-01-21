@@ -30,11 +30,11 @@ const emit = defineEmits(['confirm', 'cancel'])
   box-sizing: border-box;
   width: 420px;
   border-radius: 16px;
-  background-color: rgba(255, 255, 250, 0.85);
+  background-color: var(--popup-bg);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.11), 0 1px 2px rgba(0, 0, 0, 0.11),
     0 2px 4px rgba(0, 0, 0, 0.11), 0 4px 8px rgba(0, 0, 0, 0.11),
     0 8px 16px rgba(0, 0, 0, 0.11), 0 16px 32px rgba(0, 0, 0, 0.11);
-  border: 1px solid rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color-strong);
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -51,7 +51,7 @@ const emit = defineEmits(['confirm', 'cancel'])
 
 .content p {
   margin: 0;
-  color: rgba(11, 18, 21, 0.7);
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -74,9 +74,9 @@ const emit = defineEmits(['confirm', 'cancel'])
 }
 
 .actions .secondary {
-  background: white;
-  color: rgba(11, 18, 21, 0.75);
-  border: 1px solid rgba(11, 18, 21, 0.15);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color-strong);
 }
 
 .actions .primary {

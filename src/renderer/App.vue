@@ -26,6 +26,15 @@
     />
   </transition>
 
+  <transition name="pop">
+    <FailedQueuePrompt
+      v-if="showFailedQueuePrompt"
+      :tracks="failedQueueTracks"
+      @retry="handleFailedQueueRetry"
+      @dismiss="handleFailedQueueDismiss"
+    />
+  </transition>
+
   <div
     :class="{
       dragable: !settingsMenu,
@@ -55,6 +64,17 @@
       :is-uploading="isUploading"
       :is-ejecting="isEjecting"
     />
+
+    <div v-if="!isOnline" class="connection-banner offline" @click="handleTestConnection">
+      <span v-if="isTestingConnection">Testing connection...</span>
+      <span v-else>No connection — tap to test</span>
+    </div>
+
+    <div v-else-if="failedQueueCount > 0" class="retry-banner" @click="handleRetryQueue">
+      <span v-if="isRetrying">Retrying...</span>
+      <span v-else>{{ failedQueueCount }} failed track{{ failedQueueCount === 1 ? '' : 's' }} — tap to retry</span>
+    </div>
+
     <div class="content">
       <component :is="renderComponent.component" v-bind="renderComponent.props" />
     </div>
@@ -77,6 +97,7 @@ import Popup from './components/Popup.vue'
 import ErrorPopup from './components/ErrorPopup.vue'
 import TrackStatusPopup from './components/TrackStatusPopup.vue'
 import SyncPrompt from './components/SyncPrompt.vue'
+import FailedQueuePrompt from './components/FailedQueuePrompt.vue'
 
 import { useStates } from './composables/useStates.js'
 
@@ -112,6 +133,9 @@ const { preferences, getPreferences, setPreferences } = usePrefs()
 import { useTrackStatuses } from './composables/useTrackStatuses.js'
 const { trackStatuses, addTrackStatus, updateTrackStatus } = useTrackStatuses()
 
+import { useTheme } from './composables/useTheme.js'
+const { initTheme } = useTheme()
+
 import {
   updateProfile,
   scrobbleTracks,
@@ -119,7 +143,11 @@ import {
   login,
   connectLastFm,
   filterTracksForLedger,
-  countAlreadySyncedPlays
+  countAlreadySyncedPlays,
+  addToFailedQueue,
+  getFailedQueueCount,
+  retryFailedQueue,
+  checkNetworkConnection
 } from './utils/lastfm.js'
 
 const isLoading = ref(false)
@@ -132,6 +160,13 @@ const missingDevicePathNotified = ref(false)
 const ledgerCalloutDismissed = ref(false)
 const syncPromptOpen = ref(false)
 const syncPromptedThisConnection = ref(false)
+const failedQueueCount = ref(0)
+const isRetrying = ref(false)
+const isOnline = ref(true)
+const networkError = ref(null)
+const isTestingConnection = ref(false)
+const showFailedQueuePrompt = ref(false)
+const failedQueueTracks = ref([])
 
 const debugEnabled = import.meta.env.DEV
 const logDebug = (...args) => {
@@ -152,6 +187,7 @@ const path = ref()
 let isPolling = false
 const hasScanned = ref(false)
 const scanStatus = ref('')
+const scanProgress = ref(null)
 const uploadStatus = ref('')
 
 const updatePathFromPrefs = () => {
@@ -339,7 +375,7 @@ const renderComponent = computed(() => {
   if (isLoading.value) {
     return {
       component: LoadingView,
-      props: { message: scanStatus.value }
+      props: { message: scanStatus.value, progress: scanProgress.value }
     }
   } else if (isUploading.value) {
     return {
@@ -403,7 +439,7 @@ const renderComponent = computed(() => {
   }
   return {
     component: LoadingView,
-    props: { message: scanStatus.value }
+    props: { message: scanStatus.value, progress: scanProgress.value }
   }
 })
 
@@ -443,6 +479,7 @@ const getTracklist = async (forceUpload = false) => {
     // only get the library when the device is ready and not loading
     if (!isLoading.value && deviceState.value === 'ready') {
       isLoading.value = true
+      scanProgress.value = null
       scanStatus.value = 'Reading iPod database...'
       const receivedRecentTracks = await window.ipc.readFile(
         path.value,
@@ -481,6 +518,7 @@ const getTracklist = async (forceUpload = false) => {
       // if (tracklist.length === 0) {
       //   processing.value = false
       // }
+      scanProgress.value = null
       isLoading.value = false
       // if the autoUpload is enabled, scrobble the new tracks
       const shouldUpload = forceUpload || preferences.autoUpload
@@ -497,6 +535,7 @@ const getTracklist = async (forceUpload = false) => {
     showErrorPopup(
       'Error getting Tracks from device. Maybe the Play Count file is corrupted?'
     )
+    scanProgress.value = null
     isLoading.value = false
     processing.value = false
   }
@@ -661,6 +700,14 @@ const scrobbleNewTracks = async () => {
     })
     return
   }
+
+  // Check network connectivity before attempting to scrobble
+  const networkStatus = await testConnection()
+  if (!networkStatus.online) {
+    showErrorPopup(`Cannot scrobble: ${networkStatus.error || 'No internet connection'}. Please check your connection and try again.`)
+    return
+  }
+
   console.log('Uploading New Tracks')
   processing.value = true
   isUploading.value = true
@@ -726,6 +773,14 @@ const scrobbleNewTracks = async () => {
         ledgerUpdates: Object.keys(fallbackLedgerUpdates).length
       })
       console.log('Some tracks failed', failedTracks)
+
+      // Queue failed tracks for retry later
+      if (failedTracks.length > 0) {
+        await addToFailedQueue(failedTracks)
+        updateFailedQueueCount()
+        console.log(`Added ${failedTracks.length} tracks to retry queue`)
+      }
+
       resetLedgerCallout()
       setScrobbledSummary(submittedScrobbles, skippedTracks)
       scrobbled.playtime = calculatePlaytimeFromScrobbles(submittedScrobbles)
@@ -762,18 +817,31 @@ const scrobbleNewTracks = async () => {
 }
 
 async function checkProfile () {
-  const login = await updateProfile()
-  if (login) {
+  // If user already has a session key, check network before deciding login state
+  const hasExistingSession = preferences.lastFm?.sessionKey
+
+  const loginSuccess = await updateProfile()
+  if (loginSuccess) {
     preferences.lastFm.loggedIn = true
     console.log('Logged in')
+  } else if (hasExistingSession) {
+    // User was previously logged in but network failed - keep them logged in
+    // They can still see the app, just can't scrobble until network returns
+    preferences.lastFm.loggedIn = true
+    console.log('Offline mode - using cached session')
   } else {
+    // No existing session and couldn't connect - need to log in
     preferences.lastFm.loggedIn = false
     showAccessPopup()
   }
 }
 
 async function handleConnect () {
-  await connectLastFm()
+  const result = await connectLastFm()
+  if (!result.success) {
+    showErrorPopup(result.error)
+    return
+  }
   showConnectPopup()
 }
 
@@ -793,10 +861,99 @@ async function handleLogin () {
   }
 }
 
+function updateFailedQueueCount () {
+  failedQueueCount.value = getFailedQueueCount()
+}
+
+async function testConnection () {
+  logDebug('testConnection start')
+  const result = await checkNetworkConnection()
+  isOnline.value = result.online
+  networkError.value = result.error
+  logDebug('testConnection result', result)
+  return result
+}
+
+async function handleTestConnection () {
+  if (isTestingConnection.value) return
+
+  isTestingConnection.value = true
+  try {
+    const result = await testConnection()
+    if (result.online) {
+      console.log('Connection restored')
+    } else {
+      showErrorPopup(`Still offline: ${result.error || 'No internet connection'}`)
+    }
+  } finally {
+    isTestingConnection.value = false
+  }
+}
+
+async function handleRetryQueue () {
+  if (isRetrying.value || failedQueueCount.value === 0) return
+
+  // Check network connectivity before retrying
+  const networkStatus = await testConnection()
+  if (!networkStatus.online) {
+    showErrorPopup(`Cannot retry: ${networkStatus.error || 'No internet connection'}. Please check your connection and try again.`)
+    return
+  }
+
+  isRetrying.value = true
+  logDebug('handleRetryQueue start', { queueCount: failedQueueCount.value })
+
+  try {
+    const { succeeded, remaining } = await retryFailedQueue()
+    updateFailedQueueCount()
+
+    if (succeeded > 0) {
+      console.log(`Retry complete: ${succeeded} tracks scrobbled`)
+    }
+    if (remaining > 0) {
+      showErrorPopup(`${remaining} tracks still failed. Will retry later.`)
+    }
+  } catch (error) {
+    console.error('Error retrying queue:', error)
+    showErrorPopup('Error retrying failed tracks.')
+  } finally {
+    isRetrying.value = false
+  }
+}
+
+function checkForFailedQueue () {
+  const queue = preferences.failedScrobbleQueue || []
+  failedQueueTracks.value = queue
+  updateFailedQueueCount()
+  if (queue.length > 0) {
+    showFailedQueuePrompt.value = true
+    logDebug('checkForFailedQueue showing prompt', { queueCount: queue.length })
+  }
+}
+
+async function handleFailedQueueRetry () {
+  showFailedQueuePrompt.value = false
+  await handleRetryQueue()
+}
+
+function handleFailedQueueDismiss () {
+  showFailedQueuePrompt.value = false
+  logDebug('failed queue prompt dismissed')
+}
+
 onMounted(async () => {
   await getPreferences('fullConfig')
   updatePathFromPrefs()
   ensureDevicePath()
+
+  // Initialize theme from preferences
+  initTheme()
+
+  // Check network status at startup
+  await testConnection()
+
+  // Check for failed queue from previous session and show prompt if needed
+  checkForFailedQueue()
 
   await checkProfile()
   await pollDeviceState()
@@ -834,6 +991,12 @@ onMounted(async () => {
     })
   }
 
+  if (window.ipc.onScanProgress) {
+    window.ipc.onScanProgress((event, progress) => {
+      scanProgress.value = progress
+    })
+  }
+
   watch(
     () => preferences.devicePath,
     () => {
@@ -848,10 +1011,66 @@ onMounted(async () => {
 
 <style>
 :root {
+  /* Light mode (default) */
+  --bg-primary: #f2f2f7;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e6e6e6;
+  --bg-hover: #d9d9d9;
+  --text-primary: rgb(11, 18, 21);
+  --text-secondary: rgba(11, 18, 21, 0.7);
+  --text-muted: rgba(11, 18, 21, 0.5);
+  --border-color: rgba(11, 18, 21, 0.1);
+  --border-color-strong: rgba(11, 18, 21, 0.15);
+  --shadow-color: rgba(11, 18, 21, 0.2);
+  --popup-bg: rgba(255, 255, 250, 0.85);
+  --popup-bg-solid: rgba(255, 255, 250, 0.95);
+  --icon-filter: none;
+  --disabled-bg: #ddd;
+  --disabled-text: #666;
+  --row-hover-bg: rgb(1, 125, 199);
+  --row-hover-text: white;
+  --tooltip-bg: rgba(11, 18, 21, 0.96);
+  --tooltip-text: white;
+  --info-btn-bg: rgba(11, 18, 21, 0.04);
+  --info-btn-border: rgba(11, 18, 21, 0.15);
+  --info-btn-text: rgba(11, 18, 21, 0.65);
+
+  /* Legacy variables for backwards compatibility */
   --off-white: #f2f2f7;
   --lightgrey: #e6e6e6;
   --grey: rgba(11, 18, 21, 0.5);
   --red: #ec2d25;
+}
+
+:root.dark-mode {
+  /* Dark mode */
+  --bg-primary: #1c1c1e;
+  --bg-secondary: #2c2c2e;
+  --bg-tertiary: #3a3a3c;
+  --bg-hover: #48484a;
+  --text-primary: #f2f2f7;
+  --text-secondary: rgba(242, 242, 247, 0.7);
+  --text-muted: rgba(242, 242, 247, 0.5);
+  --border-color: rgba(242, 242, 247, 0.1);
+  --border-color-strong: rgba(242, 242, 247, 0.2);
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --popup-bg: rgba(44, 44, 46, 0.95);
+  --popup-bg-solid: rgba(44, 44, 46, 0.98);
+  --icon-filter: invert(1);
+  --disabled-bg: #3a3a3c;
+  --disabled-text: #8e8e93;
+  --row-hover-bg: rgb(1, 125, 199);
+  --row-hover-text: white;
+  --tooltip-bg: rgba(58, 58, 60, 0.98);
+  --tooltip-text: #f2f2f7;
+  --info-btn-bg: rgba(242, 242, 247, 0.08);
+  --info-btn-border: rgba(242, 242, 247, 0.2);
+  --info-btn-text: rgba(242, 242, 247, 0.65);
+
+  /* Legacy variables updated for dark mode */
+  --off-white: #1c1c1e;
+  --lightgrey: #3a3a3c;
+  --grey: rgba(242, 242, 247, 0.5);
 }
 
 @font-face {
@@ -873,10 +1092,12 @@ body {
   font-family: 'Barlow', sans-serif;
   user-select: none;
   overflow: hidden;
-  background-color: var(--off-white);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   padding: 0;
   margin: 0;
   box-sizing: border-box;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 p {
@@ -884,6 +1105,7 @@ p {
   font-family: 'Barlow', sans-serif;
   user-select: none;
   overflow: hidden;
+  color: var(--text-primary);
 }
 
 h1 {
@@ -891,6 +1113,7 @@ h1 {
   font-size: 20px;
   font-family: 'Barlow-Bold', sans-serif;
   user-select: none;
+  color: var(--text-primary);
 }
 
 button {
@@ -978,13 +1201,14 @@ button:hover {
 }
 
 .content-view p {
-  color: var(--grey);
+  color: var(--text-muted);
 }
 
 .device {
   width: 150px;
   opacity: 0.2;
   margin-bottom: 20px;
+  filter: var(--icon-filter);
 }
 
 .popup-container {
@@ -1047,5 +1271,60 @@ button:hover {
 .pop-leave-to {
   transform: scale(0.8);
   opacity: 0;
+}
+
+.retry-banner {
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  color: #856404;
+  padding: 8px 15px;
+  font-family: 'Barlow-Regular', sans-serif;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retry-banner:hover {
+  background: #ffe69c;
+}
+
+.connection-banner {
+  padding: 8px 15px;
+  font-family: 'Barlow-Regular', sans-serif;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.connection-banner.offline {
+  background: #f8d7da;
+  border-bottom: 1px solid #f5c6cb;
+  color: #721c24;
+}
+
+.connection-banner.offline:hover {
+  background: #f1b0b7;
+}
+
+:root.dark-mode .retry-banner {
+  background: #4a3d1a;
+  border-bottom-color: #a68b00;
+  color: #ffc107;
+}
+
+:root.dark-mode .retry-banner:hover {
+  background: #5c4d22;
+}
+
+:root.dark-mode .connection-banner.offline {
+  background: #4a1d24;
+  border-bottom-color: #a64d56;
+  color: #f5c6cb;
+}
+
+:root.dark-mode .connection-banner.offline:hover {
+  background: #5c2630;
 }
 </style>

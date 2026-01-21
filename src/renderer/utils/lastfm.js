@@ -3,7 +3,7 @@ const serverUrl = 'https://api.legacyscrobbler.software'
 import axios from 'axios'
 
 import { usePrefs } from '../composables/usePrefs.js'
-const { preferences, setPreferences } = usePrefs()
+const { preferences, setPreferences, getPreferences } = usePrefs()
 
 const debugEnabled = import.meta.env.DEV
 const logDebug = (...args) => {
@@ -16,6 +16,23 @@ const MIN_TRACK_SECONDS = 40
 const SHORT_TRACK_SECONDS = 60
 const DEFAULT_TRACK_SECONDS = 180
 const SCROBBLE_BUFFER_SECONDS = 30
+
+// Network connectivity check
+export async function checkNetworkConnection () {
+  try {
+    await axios.get(`${serverUrl}/authenticate`, { timeout: 5000 })
+    return { online: true, error: null }
+  } catch (error) {
+    const isNetworkError = error.code === 'ERR_NETWORK' ||
+                           error.message === 'Network Error' ||
+                           error.code === 'ENOTFOUND' ||
+                           error.message.includes('ERR_INTERNET_DISCONNECTED')
+    return {
+      online: false,
+      error: isNetworkError ? 'No internet connection' : error.message
+    }
+  }
+}
 
 function isNonEmptyString (value) {
   return typeof value === 'string' && value.trim().length > 0
@@ -309,13 +326,18 @@ export async function login (userToken) {
 }
 
 export async function connectLastFm () {
-  const { apiKey, userToken } = await fetchCreds()
+  const creds = await fetchCreds()
+  if (!creds || !creds.apiKey || !creds.userToken) {
+    return { success: false, error: 'Unable to connect. Check your internet connection.' }
+  }
+  const { apiKey, userToken } = creds
   const url = await constructUrl(apiKey, userToken)
   window.open(url, '_blank')
   await setPreferences('singleConfig', 'lastFm', {
     apiKey: apiKey,
     userToken: userToken
   })
+  return { success: true, error: null }
 }
 
 export async function updateProfile () {
@@ -440,5 +462,92 @@ async function sendScrobbleRequest(tracklist, timeout = 0) {
   } catch (error) {
       console.error("Error scrobbling:", error.message)
       return false
+  }
+}
+
+// --- Failed Scrobble Queue ---
+
+export async function addToFailedQueue (tracks) {
+  if (!tracks || tracks.length === 0) return
+
+  const queuedAt = Math.floor(Date.now() / 1000)
+  const queueItems = tracks.map(track => ({
+    track: {
+      track: track.track,
+      artist: track.artist,
+      album: track.album || '',
+      length: track.length || 0,
+      playCount: track.playCount || 1,
+      lastPlayed: track.lastPlayed || queuedAt
+    },
+    queuedAt,
+    attempts: 0
+  }))
+
+  const currentQueue = preferences.failedScrobbleQueue || []
+  const newQueue = [...currentQueue, ...queueItems]
+
+  await setPreferences('singleConfig', 'failedScrobbleQueue', newQueue)
+  logDebug('addToFailedQueue', { added: tracks.length, queueSize: newQueue.length })
+}
+
+export function getFailedQueueCount () {
+  return (preferences.failedScrobbleQueue || []).length
+}
+
+export async function clearFailedQueue () {
+  await setPreferences('singleConfig', 'failedScrobbleQueue', [])
+  logDebug('clearFailedQueue')
+}
+
+export async function retryFailedQueue (updateTrackStatus) {
+  const queue = preferences.failedScrobbleQueue || []
+  if (queue.length === 0) {
+    return { succeeded: 0, failed: 0, remaining: 0 }
+  }
+
+  logDebug('retryFailedQueue start', { queueSize: queue.length })
+
+  const succeeded = []
+  const stillFailed = []
+
+  for (let i = 0; i < queue.length; i++) {
+    const item = queue[i]
+    const scrobbleList = [{ ...item.track, lastPlayed: item.track.lastPlayed }]
+
+    if (updateTrackStatus) {
+      updateTrackStatus(i, 'pending')
+    }
+
+    const success = await sendScrobbleRequest(scrobbleList, 30000)
+
+    if (success) {
+      succeeded.push(item)
+      if (updateTrackStatus) {
+        updateTrackStatus(i, 'success')
+      }
+    } else {
+      stillFailed.push({
+        ...item,
+        attempts: (item.attempts || 0) + 1
+      })
+      if (updateTrackStatus) {
+        updateTrackStatus(i, 'failed')
+      }
+    }
+  }
+
+  // Update queue with only the still-failed items
+  await setPreferences('singleConfig', 'failedScrobbleQueue', stillFailed)
+
+  logDebug('retryFailedQueue complete', {
+    succeeded: succeeded.length,
+    stillFailed: stillFailed.length
+  })
+
+  return {
+    succeeded: succeeded.length,
+    failed: stillFailed.length,
+    remaining: stillFailed.length
   }
 }

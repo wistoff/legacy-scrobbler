@@ -28,13 +28,13 @@ function closePopup () {
   min-height: 170px;
   border-radius: 15px;
   /* overflow-y: scroll; */
-  background-color: rgba(255, 255, 250, 0.3);
+  background-color: var(--popup-bg);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.11), 0 1px 2px rgba(0, 0, 0, 0.11),
     0 2px 4px rgba(0, 0, 0, 0.11), 0 4px 8px rgba(0, 0, 0, 0.11),
     0 8px 16px rgba(0, 0, 0, 0.11), 0 16px 32px rgba(0, 0, 0, 0.11),
     0 0 64px rgba(0, 0, 0, 0.08), 0 0 128px rgba(0, 0, 0, 0.08);
   opacity: 1;
-  border: rgb(0, 0, 0, 0.2) 0.01px solid;
+  border: var(--border-color-strong) 0.01px solid;
   padding: 25px 25px 25px 25px;
   display: flex;
   flex-direction: column;

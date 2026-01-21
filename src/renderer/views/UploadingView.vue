@@ -42,6 +42,7 @@ defineProps({
 
 .content-view img {
   opacity: 0.1;
+  filter: var(--icon-filter);
 }
 
 .uploading {
@@ -50,6 +51,7 @@ defineProps({
 
 img {
   width: 150px;
+  filter: var(--icon-filter);
 }
 
 .status-text {
