@@ -10,9 +10,9 @@
         <td class="track">{{ track.track }}</td>
         <td>{{ track.artist }}</td>
         <td class="time">{{ calculateDifference(track.lastPlayed) }}</td>
-        <!-- <td class="count">
-          <div class="bubble">{{ track.playCount }}</div>
-        </td> -->
+        <td v-if="preferences.repeatScrobbles && track.playCount > 1" class="count">
+          <div class="bubble">{{ track.playCount }}x</div>
+        </td>
       </tr>
     </table>
   </div>
@@ -20,7 +20,9 @@
 
 <script setup>
 import { useTracklist } from '../composables/useTracklist.js'
+import { usePrefs } from '../composables/usePrefs.js'
 const { tracklist, selectedTracklist, toggleTrackSelection } = useTracklist()
+const { preferences } = usePrefs()
 
 const toggleTrack = track => {
   track.disabled = !track.disabled
@@ -102,7 +104,7 @@ td {
   border: 1px solid var(--text-primary);
   border-radius: 20px;
   max-width: 40px;
-  padding: 0 3px 0 3px;
+  padding: 0 8px 0 9px;
 }
 
 .disabled {

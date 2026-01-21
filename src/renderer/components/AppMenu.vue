@@ -1,18 +1,16 @@
 <template>
   <div class="header">
     <img
-      v-if="deviceState.value === 'ready'"
       :src="eraseIcon"
       alt="Erase"
-      title="Delete Play Counts file on the iPod"
+      title="Delete Play Counts file and clear local ledger"
       @click="clearPlayCounts"
       :class="{
         disabled:
+          deviceState.value === 'not-connected' ||
           isUploading ||
           isEjecting ||
-          isLoading ||
-          preferences.lastFm.apiKey === '' ||
-          selectedTracklist.length === 0
+          isLoading
       }"
     />
     <div class="refresh-container">
@@ -146,9 +144,10 @@ function openSettings () {
 
 function clearPlayCounts () {
   if (
-    isLoading.value === false &&
-    isEjecting.value === false &&
-    preferences.lastFm.apiKey !== ''
+    deviceState.value !== 'not-connected' &&
+    !isLoading.value &&
+    !isEjecting.value &&
+    !isUploading.value
   ) {
     emit('clearPlayCounts')
   }

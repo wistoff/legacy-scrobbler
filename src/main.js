@@ -111,44 +111,36 @@ const resolveMacVolumePath = devicePath => {
 }
 
 const getTrayIconPath = () => {
-  // Use a small colored tray icon on macOS
-  const iconName = process.platform === 'darwin' ? 'trayColor.png' : 'icon.ico'
+  if (process.platform === 'darwin') {
+    const appPath = path.join(app.getAppPath(), 'images', 'iconTemplate.png')
+    if (existsSync(appPath)) return appPath
+
+    // Fallback to resources
+    return path.join(process.resourcesPath, 'images', 'iconTemplate.png')
+  }
+
+  // Windows
+  const iconName = 'icon.ico'
   const appPathIcon = path.join(app.getAppPath(), 'images', iconName)
-  if (existsSync(appPathIcon)) {
-    return appPathIcon
-  }
-  // Fallback to resources path for packaged app
-  const resourcesIcon = path.join(process.resourcesPath, 'images', iconName)
-  if (existsSync(resourcesIcon)) {
-    return resourcesIcon
-  }
-  // Final fallback to regular icon
-  const fallbackName = process.platform === 'darwin' ? 'icon.icns' : 'icon.ico'
-  const fallbackPath = path.join(app.getAppPath(), 'images', fallbackName)
-  if (existsSync(fallbackPath)) {
-    return fallbackPath
-  }
-  return path.join(process.resourcesPath, 'images', fallbackName)
+  return existsSync(appPathIcon)
+    ? appPathIcon
+    : path.join(process.resourcesPath, 'images', iconName)
 }
 
 const getTrayIcon = () => {
   const iconPath = getTrayIconPath()
   const icon = nativeImage.createFromPath(iconPath)
+
   if (icon.isEmpty()) {
     logDebug('tray icon missing or invalid', { iconPath })
+    return icon
   }
+
+  // Mark as template for macOS
   if (process.platform === 'darwin') {
-    const retinaPath = iconPath.replace(/\.png$/i, '@2x.png')
-    if (retinaPath !== iconPath && existsSync(retinaPath) && !icon.isEmpty()) {
-      const retinaIcon = nativeImage.createFromPath(retinaPath)
-      if (!retinaIcon.isEmpty()) {
-        icon.addRepresentation({
-          scaleFactor: 2,
-          dataURL: retinaIcon.toDataURL()
-        })
-      }
-    }
+    icon.setTemplateImage(true)
   }
+
   return icon
 }
 

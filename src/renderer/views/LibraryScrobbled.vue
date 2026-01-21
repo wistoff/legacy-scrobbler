@@ -185,5 +185,4 @@ td {
   opacity: 0.6;
   min-width: 140px;
 }
-
 </style>

@@ -5,7 +5,7 @@
       <div class="content">
         <h1>iPod detected</h1>
         <p>
-          Ready to start scrobbling? Please close iTunes or Apple Music first
+          Ready to start scrobbling? <br> Close iTunes or Apple Music first
           to avoid conflicts.
         </p>
       </div>
