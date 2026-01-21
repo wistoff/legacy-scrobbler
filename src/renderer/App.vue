@@ -491,6 +491,9 @@ const getTracklist = async (forceUpload = false) => {
       if (shouldUpload && filteredTracks.length > 0) {
         await scrobbleNewTracks()
       } else {
+        if (preferences.autoDelete && filteredTracks.length === 0) {
+          await clearPlayCounts(false)
+        }
         processing.value = false
       }
     } else {
