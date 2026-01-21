@@ -111,8 +111,8 @@ const resolveMacVolumePath = devicePath => {
 }
 
 const getTrayIconPath = () => {
-  // macOS menu bar needs a small template image, not the full app icon
-  const iconName = process.platform === 'darwin' ? 'trayTemplate.png' : 'icon.ico'
+  // Use a small colored tray icon on macOS
+  const iconName = process.platform === 'darwin' ? 'trayColor.png' : 'icon.ico'
   const appPathIcon = path.join(app.getAppPath(), 'images', iconName)
   if (existsSync(appPathIcon)) {
     return appPathIcon
@@ -133,29 +133,21 @@ const getTrayIconPath = () => {
 
 const getTrayIcon = () => {
   const iconPath = getTrayIconPath()
-  let icon = nativeImage.createFromPath(iconPath)
+  const icon = nativeImage.createFromPath(iconPath)
   if (icon.isEmpty()) {
     logDebug('tray icon missing or invalid', { iconPath })
   }
-  // Mark as template image for macOS (allows automatic dark/light mode adaptation)
   if (process.platform === 'darwin') {
     const retinaPath = iconPath.replace(/\.png$/i, '@2x.png')
-    if (retinaPath !== iconPath && existsSync(retinaPath)) {
+    if (retinaPath !== iconPath && existsSync(retinaPath) && !icon.isEmpty()) {
       const retinaIcon = nativeImage.createFromPath(retinaPath)
       if (!retinaIcon.isEmpty()) {
-        if (icon.isEmpty()) {
-          icon = retinaIcon
-        } else {
-          icon.addRepresentation({
-            scaleFactor: 2,
-            dataURL: retinaIcon.toDataURL()
-          })
-        }
-      } else {
-        logDebug('retina tray icon missing or invalid', { retinaPath })
+        icon.addRepresentation({
+          scaleFactor: 2,
+          dataURL: retinaIcon.toDataURL()
+        })
       }
     }
-    icon.setTemplateImage(true)
   }
   return icon
 }
