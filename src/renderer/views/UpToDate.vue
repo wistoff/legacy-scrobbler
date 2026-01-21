@@ -9,25 +9,6 @@
       {{ alreadySyncedPlays }} play{{ alreadySyncedPlays !== 1 ? 's' : '' }}
       already synced.
     </p>
-    <div v-if="showLedgerCallout" class="ledger-callout">
-      <div class="callout-text">
-        <div class="callout-title">Want faster scans?</div>
-        <p>
-          Keeping Play Counts on your iPod means we compare every play against
-          the local ledger, which can slow down future scans. You can clear it
-          now to speed things up, or keep it so iTunes or other scrobblers can
-          import your plays.
-        </p>
-      </div>
-      <div class="callout-actions">
-        <button class="callout-button secondary" type="button" @click="dismissCallout">
-          Keep for iTunes
-        </button>
-        <button class="callout-button primary" type="button" @click="clearPlayCounts">
-          Clear Play Counts
-        </button>
-      </div>
-    </div>
     <div v-if="lastSyncCount > 0" class="last-sync">
       <p>
         Last sync: {{ lastSyncCount }} scrobble{{
@@ -50,57 +31,13 @@
 <script setup>
 import { computed } from 'vue'
 import { useTracklist } from '../composables/useTracklist.js'
-import { usePrefs } from '../composables/usePrefs.js'
-const { preferences } = usePrefs()
 const { scanSummary, lastSync } = useTracklist()
 import ipod_uptodate from '../assets/icons/ipod_uptodate.svg'
-
-const props = defineProps({
-  onClearPlayCounts: {
-    type: Function,
-    default: null
-  },
-  onDismissLedgerCallout: {
-    type: Function,
-    default: null
-  },
-  calloutDismissed: {
-    type: Boolean,
-    default: false
-  }
-})
-
-const dismissCallout = () => {
-  console.log('[debug] dismiss ledger callout (keep)')
-  if (props.onDismissLedgerCallout) {
-    props.onDismissLedgerCallout()
-  }
-}
-
-const clearPlayCounts = () => {
-  console.log('[debug] clear play counts clicked')
-  if (props.onDismissLedgerCallout) {
-    props.onDismissLedgerCallout()
-  }
-  if (props.onClearPlayCounts) {
-    props.onClearPlayCounts()
-  }
-}
 
 const alreadySyncedPlays = computed(() => scanSummary.alreadySyncedPlays)
 const showScanComplete = computed(() => {
   return scanSummary.scannedAt > 0 && scanSummary.foundTracks === 0
 })
-const showLedgerCallout = computed(() => {
-  if (props.calloutDismissed) {
-    return false
-  }
-  if (preferences.autoDelete) {
-    return false
-  }
-  return scanSummary.scannedAt > 0 && scanSummary.playCountsPresent
-})
-
 const lastSyncCount = computed(() => lastSync.tracks)
 
 const lastSyncList = computed(() => {
@@ -187,64 +124,4 @@ td {
   color: var(--text-muted);
 }
 
-.ledger-callout {
-  margin: 16px auto 0;
-  width: 100%;
-  max-width: 480px;
-  background: #fff6e0;
-  border: 1px solid rgba(237, 175, 80, 0.5);
-  border-radius: 12px;
-  padding: 12px 14px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-  text-align: left;
-}
-
-:root.dark-mode .ledger-callout {
-  background: #3d3520;
-  border-color: rgba(237, 175, 80, 0.3);
-}
-
-.callout-title {
-  font-family: 'Barlow-Bold', sans-serif;
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
-.ledger-callout p {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.callout-actions {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.callout-button {
-  border: none;
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-}
-
-.callout-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-}
-
-.callout-button.secondary {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color-strong);
-}
-
-.callout-button.primary {
-  background: rgba(237, 175, 80, 0.9);
-  color: #2d1d00;
-}
 </style>

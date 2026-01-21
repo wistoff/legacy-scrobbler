@@ -157,7 +157,6 @@ const settingsMenu = ref(false)
 
 const processing = ref(false)
 const missingDevicePathNotified = ref(false)
-const ledgerCalloutDismissed = ref(false)
 const syncPromptOpen = ref(false)
 const syncPromptedThisConnection = ref(false)
 const failedQueueCount = ref(0)
@@ -228,21 +227,6 @@ const showScrobbleSummary = computed(() => {
   }
   return lastSync.syncedAt >= scanSummary.scannedAt
 })
-
-const dismissLedgerCallout = reason => {
-  ledgerCalloutDismissed.value = true
-  logDebug('ledger callout dismissed', { reason })
-}
-
-const resetLedgerCallout = () => {
-  ledgerCalloutDismissed.value = false
-}
-
-const handleClearPlayCounts = async () => {
-  dismissLedgerCallout('clear')
-  logDebug('clear play counts requested')
-  await clearPlayCounts(false)
-}
 
 const handleEjectDevice = async () => {
   if (isEjecting.value) {
@@ -397,42 +381,24 @@ const renderComponent = computed(() => {
       } else if (showScrobbleSummary.value) {
         return {
           component: LibraryScrobbled,
-          props: {
-            onClearPlayCounts: handleClearPlayCounts,
-            onDismissLedgerCallout: () => dismissLedgerCallout('keep'),
-            calloutDismissed: ledgerCalloutDismissed.value
-          }
+          props: {}
         }
       } else {
         return {
           component: hasScanned.value ? UpToDate : ReadyToSync,
-          props: hasScanned.value
-            ? {
-                onClearPlayCounts: handleClearPlayCounts,
-                onDismissLedgerCallout: () => dismissLedgerCallout('keep'),
-                calloutDismissed: ledgerCalloutDismissed.value
-              }
-            : {}
+          props: {}
         }
       }
     } else if (deviceState.value === 'no-plays') {
       if (showScrobbleSummary.value) {
         return {
           component: LibraryScrobbled,
-          props: {
-            onClearPlayCounts: handleClearPlayCounts,
-            onDismissLedgerCallout: () => dismissLedgerCallout('keep'),
-            calloutDismissed: ledgerCalloutDismissed.value
-          }
+          props: {}
         }
       } else {
         return {
           component: UpToDate,
-          props: {
-            onClearPlayCounts: handleClearPlayCounts,
-            onDismissLedgerCallout: () => dismissLedgerCallout('keep'),
-            calloutDismissed: ledgerCalloutDismissed.value
-          }
+          props: {}
         }
       }
     }
@@ -734,7 +700,6 @@ const scrobbleNewTracks = async () => {
     if (status) {
       console.log('Tracks Scrobbled')
       uploadStatus.value = 'Finalizing sync...'
-      resetLedgerCallout()
       setScrobbledSummary(scrobbles, skipped)
       scrobbled.playtime = calculatePlaytimeFromScrobbles(scrobbles)
       setLastSync(scrobbles, skipped, scrobbled.playtime)
@@ -781,7 +746,6 @@ const scrobbleNewTracks = async () => {
         console.log(`Added ${failedTracks.length} tracks to retry queue`)
       }
 
-      resetLedgerCallout()
       setScrobbledSummary(submittedScrobbles, skippedTracks)
       scrobbled.playtime = calculatePlaytimeFromScrobbles(submittedScrobbles)
       setLastSync(submittedScrobbles, skippedTracks, scrobbled.playtime)
