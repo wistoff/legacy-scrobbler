@@ -111,20 +111,36 @@ const resolveMacVolumePath = devicePath => {
 }
 
 const getTrayIconPath = () => {
-  const iconName = process.platform === 'darwin' ? 'icon.icns' : 'icon.ico'
-  const appPathIcon = path.join(app.getAppPath(), 'images', iconName)
-  if (existsSync(appPathIcon)) {
-    return appPathIcon
+  if (process.platform === 'darwin') {
+    const appPath = path.join(app.getAppPath(), 'images', 'iconTemplate.png')
+    if (existsSync(appPath)) return appPath
+
+    // Fallback to resources
+    return path.join(process.resourcesPath, 'images', 'iconTemplate.png')
   }
-  return path.join(process.resourcesPath, 'images', iconName)
+
+  // Windows
+  const iconName = 'icon.ico'
+  const appPathIcon = path.join(app.getAppPath(), 'images', iconName)
+  return existsSync(appPathIcon)
+    ? appPathIcon
+    : path.join(process.resourcesPath, 'images', iconName)
 }
 
 const getTrayIcon = () => {
   const iconPath = getTrayIconPath()
   const icon = nativeImage.createFromPath(iconPath)
+
   if (icon.isEmpty()) {
     logDebug('tray icon missing or invalid', { iconPath })
+    return icon
   }
+
+  // Mark as template for macOS
+  if (process.platform === 'darwin') {
+    icon.setTemplateImage(true)
+  }
+
   return icon
 }
 
