@@ -28,6 +28,10 @@ module.exports = {
     //   appleIdPassword: buildKeys.apple.appleIdPassword,
     //   teamId: buildKeys.apple.teamId
     // }
+    osxSign: {
+      identity: '-',
+      'hardened-runtime': false
+    }
   },
   rebuildConfig: {},
   makers: [
@@ -47,7 +51,7 @@ module.exports = {
     {
       name: '@electron-forge/maker-dmg',
       config: {
-        background: './images/dmg-background.png',
+        background: './images/dmg-background-gatekeeper.png',
         format: 'ULFO',
         icon: './images/icon.icns',
         contents: [
@@ -60,7 +64,7 @@ module.exports = {
           }
         ]
       }
-    }
+    },
     // {
     //   name: '@electron-forge/maker-zip',
     //   platforms: ['darwin']

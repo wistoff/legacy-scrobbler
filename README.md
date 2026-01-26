@@ -27,6 +27,11 @@ Legacy Scrobbler is designed to bridge the gap between legacy hardware, and the 
 - Install the application by following the on-screen instructions.
 - Connect your iPod to your System using a compatible cable.
 
+**macOS Users**: If you see a warning that the app is damaged and can't be opened, run this command in Terminal after installation:
+```bash
+xattr -cr "/Applications/Legacy Scrobbler.app"
+```
+
 ### Syncing Tracks
 1. Launch Legacy Scrobbler.
 2. Authorize Legacy Scrobbler to access your Last.fm account.
