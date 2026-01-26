@@ -49,10 +49,11 @@ xattr -cr "/Applications/Legacy Scrobbler.app"
 ## Settings
 ![Settings](/images/settings.png)
 - **Automatic Library Scan**: Automatically scans the library for new tracks if a device is connected.
-- **Automatic Delete**: Automatically deletes the play records from the iPod after scrobbling them. (Just like iTunes/Apple Music when syncing your iPod.)
+- **Automatic Delete**: Removes the Play Counts file after a successful sync. Only needed if you want to prevent iTunes or other scrobblers from importing old plays.
 - **Automatic Upload**: Automatically uploads the scrobbles to your Last.fm profile.
-- **Scrobble Repeat Plays**: Automatically scrobbles repeat plays (timestamps are estimated)
-- **DevicePath**: Change the default device path to match the home folder of your iPod.
+- **Scrobble Repeat Plays**: Automatically scrobbles repeat plays (timestamps are estimated).
+- **Dark Mode**: Toggle between light and dark themes.
+- **Device Path**: Change the default device path to match the home folder of your iPod.
 
 ## Building from Source
 
