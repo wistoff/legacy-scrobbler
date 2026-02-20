@@ -65,6 +65,19 @@ module.exports = {
         ]
       }
     },
+    // Make Appimage for Linux
+    {
+      name: '@reforged/maker-appimage',
+      platforms: ['linux'],
+      config: {
+        options: {
+          icon: './images/icon.png',
+          bin: 'Legacy Scrobbler',
+          categories: ['AudioVideo', 'Audio']
+        }
+      }
+    },
+
     // {
     //   name: '@electron-forge/maker-zip',
     //   platforms: ['darwin']
