@@ -77,6 +77,8 @@ xattr -cr "/Applications/Legacy Scrobbler.app"
 <br>
 When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in package.json 
 
+Compiling for Linux will yield both an Appimage and a .deb file.
+
 ## Features
 - Sync tracks from iPod to Last.fm profile.
 - Preserve offline listening history digitally.
