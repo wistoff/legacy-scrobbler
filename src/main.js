@@ -57,6 +57,7 @@ app.disableHardwareAcceleration()
 app.commandLine.appendSwitch('disable-gpu')
 
 const isWindows = process.platform === 'win32'
+const isLinux = process.platform === 'linux'
 const isDev = !app.isPackaged || Boolean(MAIN_WINDOW_VITE_DEV_SERVER_URL)
 const logDebug = (...args) => {
   if (isDev) {
@@ -117,6 +118,12 @@ const getTrayIconPath = () => {
 
     // Fallback to resources
     return path.join(process.resourcesPath, 'images', 'iconTemplate.png')
+  }
+
+  if (isLinux) {
+    const appPath = path.join(app.getAppPath(), 'images', 'icon.png')
+    if (existsSync(appPath)) return appPath
+    return path.join(process.resourcesPath, 'images', 'icon.png')
   }
 
   // Windows
