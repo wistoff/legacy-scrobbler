@@ -73,6 +73,7 @@ xattr -cr "/Applications/Legacy Scrobbler.app"
 **MacOs Apple Intel:** ``npm run make -- --arch=x64 --platform=darwin``<br>
 **Windows 64-Bit:** ``npm run make -- --arch="x64" --platform=win32``<br>
 **Windows 32-Bit:** ``npm run make -- --arch="ia32" --platform=win32``<br>
+**Linux 64-Bit:** ``npm run make -- --arch="x64" --platform=linux``<br>
 <br>
 When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in package.json 
 
@@ -106,7 +107,7 @@ If you tested another device and can confirm it's working, please let me know.
 
 - macOS: ✅
 - Windows: ✅
-- Linux: ❓
+- Linux: ✅
 
 ## Changelog
 View the [changelog](CHANGELOG.md) for a detailed history of changes across releases.
