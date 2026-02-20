@@ -82,10 +82,17 @@ module.exports = {
     //   name: '@electron-forge/maker-zip',
     //   platforms: ['darwin']
     // },
-    // {
-    //   name: '@electron-forge/maker-deb',
-    //   config: {}
-    // },
+    {
+      name: '@electron-forge/maker-deb',
+      platforms: ['linux'],
+      config: {
+        options: {
+          icon: './images/icon.png',
+          bin: 'Legacy Scrobbler',
+          categories: ['AudioVideo', 'Audio']
+        }
+      }
+   },
     // {
     //   name: '@electron-forge/maker-rpm',
     //   config: {}
