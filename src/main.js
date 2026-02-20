@@ -204,8 +204,8 @@ const createWindow = ({ width, height }) => {
   // Create the browser window.
 
   mainWindow = new BrowserWindow({
-    titleBarStyle: isWindows ? false : 'hidden',
-    frame: isWindows,
+    titleBarStyle: isWindows ? false : isLinux ? 'default' : 'hidden',
+    frame: isWindows || isLinux,
     autoHideMenuBar: true,
     width: width,
     height: height,
