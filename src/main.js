@@ -528,13 +528,6 @@ async function handleReadFile (event, { path, action }) {
 }
 
 async function handleEjectDevice (event, { path: devicePath }) {
-  if (!isWindows && process.platform !== 'darwin') {
-    return {
-      status: false,
-      message: 'Safe eject is only supported on Windows and macOS for now.'
-    }
-  }
-
   const safePath = typeof devicePath === 'string' ? devicePath : ''
   const trimmedPath = safePath.replace(/[\\/]+$/, '')
 
@@ -563,6 +556,89 @@ async function handleEjectDevice (event, { path: devicePath }) {
     }
   }
 
+  if (isLinux) {
+    if (!trimmedPath) {
+      return {
+        status: false,
+        message: 'Invalid device path. Please reselect your iPod.'
+      }
+    }
+    logDebug('eject device requested (linux)', { devicePath: trimmedPath })
+
+
+    try {
+      // Find the block device for this mount point using lsblk
+      const mountPoint = trimmedPath.split('/iPod_Control')[0]
+      logDebug('linux eject mount point', { mountPoint })
+
+      const { stdout: lsblkOut } = await execFileAsync('lsblk', [
+        '-o', 'NAME,MOUNTPOINT', '-J'
+      ])
+      const lsblk = JSON.parse(lsblkOut)
+
+      let blockDevice = null
+      const findDevice = (devices) => {
+        for (const dev of devices) {
+          if (dev.mountpoint === mountPoint) {
+            blockDevice = `/dev/${dev.name}`
+            return
+          }
+          if (dev.children) findDevice(dev.children)
+        }
+      }
+      findDevice(lsblk.blockdevices)
+
+      if (!blockDevice) {
+        logDebug('linux eject could not find block device', { mountPoint })
+        return {
+          status: false,
+          message: 'Could not find the iPod block device. Is it still connected?'
+        }
+      }
+
+      logDebug('linux eject block device found', { blockDevice })
+
+      // Sync filesystem buffers first
+      await execFileAsync('sync', [])
+
+      // Unmount using udisksctl (works without root on all major distros)
+      try {
+        await execFileAsync('udisksctl', ['unmount', '-b', blockDevice])
+      } catch (error) {
+        // If already unmounted, that's fine
+        if (!existsSync(mountPoint)) {
+          logDebug('linux eject already unmounted', { mountPoint })
+        } else {
+          throw error
+        }
+      }
+
+      // Power off the device so it can be safely unplugged
+      try {
+        // Get the parent device (e.g. /dev/sdb from /dev/sdb1)
+        const parentDevice = blockDevice.replace(/[0-9]+$/, '')
+        await execFileAsync('udisksctl', ['power-off', '-b', parentDevice])
+        logDebug('linux eject power-off success', { parentDevice })
+      } catch (error) {
+        // power-off can fail on some setups (e.g. non-USB), that's acceptable
+        logDebug('linux eject power-off failed (non-critical)', { error: error.message })
+      }
+
+      return { status: true, message: '' }
+    } catch (error) {
+      if (!existsSync(trimmedPath)) {
+        logDebug('linux eject error but mount point already gone', { trimmedPath })
+        return { status: true, message: '' }
+      }
+      console.error('Error ejecting device on Linux:', error)
+      return {
+        status: false,
+        message: 'Unable to eject the iPod. Try unmounting it manually from your file manager.'
+      }
+    }
+  }
+
+  // Windows
   const root = trimmedPath ? path.parse(trimmedPath).root : ''
   const driveLetter = root ? root.replace(/[\\/]+$/, '') : ''
   if (!driveLetter) {
