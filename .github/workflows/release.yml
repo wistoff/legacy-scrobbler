@@ -137,8 +137,8 @@ jobs:
           fail_on_unmatched_files: true
           body: |
             # MacOs
-            [Apple Silicon (arm64) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-arm64.dmg)
-            [Apple Intel (x64) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-x64.dmg)
+            [Apple Silicon (arm64) ${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-arm64.dmg)
+            [Apple Intel (x64) ${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-x64.dmg)
 
             **macOS Users**: If you see a warning that the app is damaged and can't be opened, run this command in Terminal after installation:
             ```bash
@@ -147,10 +147,10 @@ jobs:
 
 
             # Windows
-            [Windows (64-Bit) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-setup-x64.exe)
-            [Windows (32-Bit) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-setup-ia32.exe)
+            [Windows (64-Bit) ${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-setup-x64.exe)
+            [Windows (32-Bit) ${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-setup-ia32.exe)
 
 
             # Linux
-            [AppImage (x64) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-x64.AppImage)
-            [Debian (.deb, x64) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/legacy-scrobbler_${{ steps.version.outputs.value }}_amd64.deb)
+            [AppImage (x64) ${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-x64.AppImage)
+            [Debian (.deb, x64) ${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/legacy-scrobbler_${{ steps.version.outputs.value }}_amd64.deb)
