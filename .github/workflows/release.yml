@@ -21,6 +21,9 @@ jobs:
           node-version: 20
           cache: yarn
 
+      - name: Use HTTPS for github.com git deps
+        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+
       - run: yarn install
 
       - run: yarn make --platform=darwin --arch=arm64,x64
@@ -41,6 +44,9 @@ jobs:
         with:
           node-version: 20
           cache: yarn
+
+      - name: Use HTTPS for github.com git deps
+        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
 
       - run: yarn install
 
