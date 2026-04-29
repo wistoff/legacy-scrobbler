@@ -123,6 +123,10 @@ jobs:
         with:
           path: artifacts
 
+      - name: Compute version (strip leading v)
+        id: version
+        run: echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
       - uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -131,3 +135,22 @@ jobs:
             artifacts/**/*.AppImage
             artifacts/**/*.deb
           fail_on_unmatched_files: true
+          body: |
+            # MacOs
+            [Apple Silicon (arm64) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-arm64.dmg)
+            [Apple Intel (x64) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-x64.dmg)
+
+            **macOS Users**: If you see a warning that the app is damaged and can't be opened, run this command in Terminal after installation:
+            ```bash
+            xattr -cr "/Applications/Legacy Scrobbler.app"
+            ```
+
+
+            # Windows
+            [Windows (64-Bit) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-setup-x64.exe)
+            [Windows (32-Bit) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-setup-ia32.exe)
+
+
+            # Linux
+            [AppImage (x64) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/Legacy%20Scrobbler-${{ steps.version.outputs.value }}-x64.AppImage)
+            [Debian (.deb, x64) ${{ github.ref_name }}](https://legacyscrobbler.software/releases/legacy-scrobbler_${{ steps.version.outputs.value }}_amd64.deb)

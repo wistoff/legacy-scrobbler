@@ -1,5 +1,13 @@
 # Legacy Scrobbler Changelog
 
+## Version 1.0.4 - Linux Support (2026-04-29)
+
+### New Features
+- **Linux support**: Native AppImage and `.deb` builds for x64. Includes Linux-aware tray icon, native window framing, and `udisksctl`-based iPod eject.
+
+### Build / CI
+- GitHub Actions release pipeline: builds macOS (arm64 + x64), Windows (ia32 + x64), and Linux (AppImage + .deb) on every `v*` tag and attaches them to the GitHub release.
+
 ## Version 1.0.3 - Tray Mode, Dark Mode & Repeat Scrobbles (2026-01-21)
 
 ### New Features
