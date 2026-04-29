@@ -37,6 +37,9 @@ jobs:
   build-windows:
     name: Build Windows (ia32 + x64)
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
