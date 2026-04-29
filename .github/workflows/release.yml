@@ -84,10 +84,42 @@ jobs:
           path: out/make/squirrel.windows/ia32/*.exe
           if-no-files-found: error
 
+  build-linux:
+    name: Build Linux (x64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Use HTTPS for github.com git deps
+        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+
+      - run: yarn install
+
+      - run: yarn make --platform=linux --arch=x64
+
+      - name: Upload Linux AppImage
+        uses: actions/upload-artifact@v5
+        with:
+          name: Legacy-Scrobbler-Linux-AppImage-x64
+          path: out/make/**/*.AppImage
+          if-no-files-found: error
+
+      - name: Upload Linux .deb
+        uses: actions/upload-artifact@v5
+        with:
+          name: Legacy-Scrobbler-Linux-deb-x64
+          path: out/make/**/*.deb
+          if-no-files-found: error
+
   attach-to-release:
     name: Attach binaries to GitHub release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-macos, build-windows]
+    needs: [build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v5
@@ -99,4 +131,6 @@ jobs:
           files: |
             artifacts/**/*.dmg
             artifacts/**/*.exe
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
           fail_on_unmatched_files: true
