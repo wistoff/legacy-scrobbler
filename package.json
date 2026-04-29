@@ -23,6 +23,7 @@
     "@electron-forge/maker-squirrel": "^7.10.2",
     "@electron-forge/maker-zip": "^7.10.2",
     "@electron-forge/plugin-vite": "^7.10.2",
+    "@reforged/maker-appimage": "^5.2.0",
     "@vitejs/plugin-vue": "^5.2.0",
     "electron": "^39.0.0",
     "standard": "^17.1.2",
