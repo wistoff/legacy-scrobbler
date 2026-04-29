@@ -9,9 +9,6 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build-macos:
     name: Build macOS (arm64 + x64)
@@ -32,14 +29,14 @@ jobs:
       - run: yarn make --platform=darwin --arch=arm64,x64
 
       - name: Upload macOS arm64 DMG
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Legacy-Scrobbler-macOS-arm64
           path: out/make/*-arm64.dmg
           if-no-files-found: error
 
       - name: Upload macOS x64 DMG
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Legacy-Scrobbler-macOS-x64
           path: out/make/*-x64.dmg
@@ -71,14 +68,14 @@ jobs:
         run: yarn make --platform=win32 --arch=ia32
 
       - name: Upload Windows x64 installer
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Legacy-Scrobbler-Windows-x64
           path: out/make/squirrel.windows/x64/*.exe
           if-no-files-found: error
 
       - name: Upload Windows ia32 installer
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Legacy-Scrobbler-Windows-ia32
           path: out/make/squirrel.windows/ia32/*.exe
@@ -103,14 +100,14 @@ jobs:
       - run: yarn make --platform=linux --arch=x64
 
       - name: Upload Linux AppImage
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Legacy-Scrobbler-Linux-AppImage-x64
           path: out/make/**/*.AppImage
           if-no-files-found: error
 
       - name: Upload Linux .deb
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: Legacy-Scrobbler-Linux-deb-x64
           path: out/make/**/*.deb
@@ -122,7 +119,7 @@ jobs:
     needs: [build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
 
