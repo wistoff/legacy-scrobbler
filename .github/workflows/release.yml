@@ -67,10 +67,6 @@ jobs:
       - name: Build ia32 installer
         run: yarn make --platform=win32 --arch=ia32
 
-      - name: List build output (debug)
-        if: always()
-        run: find out/make -type f | sort
-
       - name: Upload Windows x64 installer
         uses: actions/upload-artifact@v7
         with:
