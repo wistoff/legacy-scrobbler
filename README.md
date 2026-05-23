@@ -100,6 +100,7 @@ Compiling for Linux will yield both an Appimage and a .deb file.
 | iPod Classic 5th Gen| ✅                |
 | iPod Classic 6th Gen| ✅                 |
 | iPod Classic 6.5th Gen| ✅               |
+| iPod Nano 2nd Gen| ✅                   |
 | iPod Nano 3rd Gen| ✅                   |
 | iPod Nano 4th Gen| ✅                   |
 
