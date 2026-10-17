@@ -1,3 +1,5 @@
+import { parsePlayCounts } from './playCounts.mjs'
+
 const { open } = require('fs/promises')
 
 const debugEnabled = process.env.NODE_ENV !== 'production'
@@ -194,117 +196,6 @@ function littleEndianToBigInt (byteArray) {
     bigEndianBytes[i] = byteArray[byteArray.length - i - 1]
   }
   return BigInt('0x' + bigEndianBytes.toString('hex'))
-}
-
-async function parsePlayCounts (filePath, tracklist) {
-  try {
-    console.log('Reading "Play Counts" file:', filePath)
-    logDebug('parsePlayCounts start', { filePath })
-
-    const handler = await open(filePath, 'r')
-
-    let bytesOffset = 0
-
-    bytesOffset += 8 // Skip 8 bytes
-    const dword = Buffer.alloc(4)
-
-    const entryLenArray = await readBytesAtPosition(
-      handler,
-      dword,
-      bytesOffset,
-      4
-    )
-    const entryLen = Number(littleEndianToBigInt(dword))
-
-    bytesOffset += 4
-
-    const numEntriesArray = await readBytesAtPosition(
-      handler,
-      dword,
-      bytesOffset,
-      4
-    )
-    const numEntries = Number(littleEndianToBigInt(dword))
-
-    bytesOffset += 4
-
-    bytesOffset += 80
-
-    // Validate entry counts match between Play Counts and iTunesDB
-    const expectedEntries = tracklist.length
-    if (numEntries !== expectedEntries && numEntries !== expectedEntries + 1) {
-      console.warn(
-        `[readDB] Play Counts/iTunesDB mismatch: Play Counts has ${numEntries} entries, iTunesDB has ${expectedEntries} tracks`
-      )
-      logDebug('parsePlayCounts mismatch', {
-        playCountsEntries: numEntries,
-        iTunesDbTracks: expectedEntries,
-        delta: numEntries - expectedEntries
-      })
-    }
-
-    let updatedCount = 0
-    let skippedOutOfBounds = 0
-    for (let i = 0; i < numEntries - 1; i++) {
-      // Bounds check: ensure we have a corresponding track in iTunesDB
-      if (i >= tracklist.length) {
-        skippedOutOfBounds++
-        bytesOffset += entryLen
-        continue
-      }
-      let lastPlayedCollection = []
-      let savedBytes = bytesOffset
-      const playCountArray = await readBytesAtPosition(
-        handler,
-        dword,
-        bytesOffset,
-        4
-      )
-      const playCount = Number(littleEndianToBigInt(dword))
-      bytesOffset += 4
-
-      if (playCount > 0) {
-        const lastPlayedArray = await readBytesAtPosition(
-          handler,
-          dword,
-          bytesOffset,
-          4
-        )
-
-        let lastPlayed = Number(littleEndianToBigInt(dword))
-        bytesOffset += 4
-
-        lastPlayed -= 2082844800
-
-        var offset = new Date().getTimezoneOffset() * 60
-        lastPlayed += offset
-
-        tracklist[i].playCount = playCount
-        tracklist[i].lastPlayed = lastPlayed
-        updatedCount += 1
-      }
-
-      bytesOffset = savedBytes + entryLen
-    }
-    if (handler) {
-      await handler.close()
-      console.log('File handler for play counts closed successfully.')
-    }
-    // Log summary including any skipped entries
-    if (skippedOutOfBounds > 0) {
-      console.warn(
-        `[readDB] Skipped ${skippedOutOfBounds} Play Counts entries (out of bounds)`
-      )
-    }
-    logDebug('parsePlayCounts complete', {
-      entries: numEntries,
-      tracksInDb: tracklist.length,
-      updatedCount,
-      skippedOutOfBounds
-    })
-  } catch (error) {
-    console.error('Error:', error)
-  }
 }
 
 export async function getRecentTracks (path, onProgress) {

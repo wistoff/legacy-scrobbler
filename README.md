@@ -7,7 +7,7 @@
   </div>
 </div>
 
-[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://legacyscrobbler.software)
+[![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)](https://legacyscrobbler.software)
 [![GitHub stars](https://img.shields.io/github/stars/wistoff/legacy-scrobbler.svg)](https://github.com/wistoff/legacy-scrobbler/stargazers)
 ![Electron](https://img.shields.io/badge/Electron-24.2.0-teal.svg)
 ![Vue](https://img.shields.io/badge/Vue-3.2.47-green.svg)
@@ -58,12 +58,12 @@ xattr -cr "/Applications/Legacy Scrobbler.app"
 ## Building from Source
 
 ### Prerequisites
-- Node.js installed on your system.
+- Node.js 20 and npm installed on your system.
 
 ### Building Legacy Scrobbler
 1. Clone the repository: `git clone https://github.com/wistoff/legacy-scrobbler.git`
 2. Navigate to the project directory: `cd legacy-scrobbler`
-3. Install dependencies: `npm install`
+3. Install dependencies: `npm ci`
 4. Run the application in development mode: `npm run start`
 5. To build the application for distribution: `npm run make`
 
@@ -75,9 +75,7 @@ xattr -cr "/Applications/Legacy Scrobbler.app"
 **Windows 32-Bit:** ``npm run make -- --arch="ia32" --platform=win32``<br>
 **Linux 64-Bit:** ``npm run make -- --arch="x64" --platform=linux``<br>
 <br>
-When compiling for MacOs add ``"appdmg": "^0.6.6",`` to the devDependencies in package.json 
-
-Compiling for Linux will yield both an Appimage and a .deb file.
+Compiling for Linux will yield both an AppImage and a `.deb` file.
 
 ## Features
 - Sync tracks from iPod to Last.fm profile.

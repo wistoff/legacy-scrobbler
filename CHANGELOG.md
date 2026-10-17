@@ -1,5 +1,17 @@
 # Legacy Scrobbler Changelog
 
+## Unreleased
+
+### Bug Fixes
+- Process the final `Play Counts` entry when the number of entries matches the number of tracks in `iTunesDB`.
+
+### Tests
+- Add regression coverage for matching entry counts, trailing sentinel entries, and fewer play-count entries than library tracks.
+
+### Build / CI
+- Standardize local and release builds on Node.js 20 and npm.
+- Run tests and a Linux packaging smoke test on pushes and pull requests.
+
 ## Version 1.0.4 - Linux Support (2026-04-29)
 
 ### New Features

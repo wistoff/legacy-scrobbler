@@ -19,14 +19,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 20
-          cache: yarn
+          cache: npm
 
-      - name: Use HTTPS for github.com git deps
-        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+      - run: npm ci
 
-      - run: yarn install
-
-      - run: yarn make --platform=darwin --arch=arm64,x64
+      - run: npm run make -- --platform=darwin --arch=arm64,x64
 
       - name: Upload macOS arm64 DMG
         uses: actions/upload-artifact@v7
@@ -54,18 +51,15 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 20
-          cache: yarn
+          cache: npm
 
-      - name: Use HTTPS for github.com git deps
-        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
-
-      - run: yarn install
+      - run: npm ci
 
       - name: Build x64 installer
-        run: yarn make --platform=win32 --arch=x64
+        run: npm run make -- --platform=win32 --arch=x64
 
       - name: Build ia32 installer
-        run: yarn make --platform=win32 --arch=ia32
+        run: npm run make -- --platform=win32 --arch=ia32
 
       - name: Upload Windows x64 installer
         uses: actions/upload-artifact@v7
@@ -90,14 +84,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 20
-          cache: yarn
+          cache: npm
 
-      - name: Use HTTPS for github.com git deps
-        run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+      - run: npm ci
 
-      - run: yarn install
-
-      - run: yarn make --platform=linux --arch=x64
+      - run: npm run make -- --platform=linux --arch=x64
 
       - name: Upload Linux AppImage
         uses: actions/upload-artifact@v7
