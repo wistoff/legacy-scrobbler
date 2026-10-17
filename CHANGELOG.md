@@ -10,7 +10,7 @@
 
 ### Build / CI
 - Standardize local and release builds on Node.js 20 and npm.
-- Run tests and a Linux packaging smoke test on pushes and pull requests.
+- Run tests, lint, and a Linux packaging smoke test on pushes and pull requests.
 
 ### Dependencies
 - Refresh dependencies to current compatible releases, removing all production dependency audit findings.

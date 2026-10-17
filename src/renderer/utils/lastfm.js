@@ -1,9 +1,9 @@
-const serverUrl = 'https://api.legacyscrobbler.software'
 // const serverUrl = 'http://localhost:3000'
 import axios from 'axios'
 
 import { usePrefs } from '../composables/usePrefs.js'
-const { preferences, setPreferences, getPreferences } = usePrefs()
+const serverUrl = 'https://api.legacyscrobbler.software'
+const { preferences, setPreferences } = usePrefs()
 
 const debugEnabled = import.meta.env.DEV
 const logDebug = (...args) => {
@@ -312,7 +312,7 @@ export async function login (userToken) {
       }
     } else {
       await setPreferences('singleConfig', 'lastFm', {
-        sessionKey: sessionKey
+        sessionKey
       })
       return { status: true, message: '' }
     }
@@ -334,8 +334,8 @@ export async function connectLastFm () {
   const url = await constructUrl(apiKey, userToken)
   window.open(url, '_blank')
   await setPreferences('singleConfig', 'lastFm', {
-    apiKey: apiKey,
-    userToken: userToken
+    apiKey,
+    userToken
   })
   return { success: true, error: null }
 }
@@ -400,30 +400,29 @@ export async function scrobbleTracksIndividually (tracklist, updateTrackStatus, 
         return
       }
 
-    const playCount = normalizePlayCount(track.playCount)
-    const key = buildTrackKey(track)
-    const state = resolveLedgerState(track, ledger?.[key])
-    const previousCount = state.treatAsAlreadySynced ? state.playCount : state.previousCount
-    const deltaCount = preferences.repeatScrobbles
-      ? Math.max(0, state.playCount - previousCount)
-      : (state.playCount > previousCount ? 1 : 0)
+      const key = buildTrackKey(track)
+      const state = resolveLedgerState(track, ledger?.[key])
+      const previousCount = state.treatAsAlreadySynced ? state.playCount : state.previousCount
+      const deltaCount = preferences.repeatScrobbles
+        ? Math.max(0, state.playCount - previousCount)
+        : (state.playCount > previousCount ? 1 : 0)
 
-    if (deltaCount <= 0) {
-      updateTrackStatus(index, 'success')
-      return
-    }
-
-    const anchorTimestamp = previousCount > 0 ? now : state.lastPlayed
-    const scrobbleList = buildScrobbles(track, deltaCount, anchorTimestamp)
-    const success = await sendScrobbleRequest(scrobbleList, 30000)
-    if (success) {
-      updateTrackStatus(index, 'success')
-      submittedScrobbles.push(...scrobbleList)
-      ledgerUpdates[key] = {
-        count: state.playCount,
-        lastPlayed: state.lastPlayed,
-        syncedAt: now
+      if (deltaCount <= 0) {
+        updateTrackStatus(index, 'success')
+        return
       }
+
+      const anchorTimestamp = previousCount > 0 ? now : state.lastPlayed
+      const scrobbleList = buildScrobbles(track, deltaCount, anchorTimestamp)
+      const success = await sendScrobbleRequest(scrobbleList, 30000)
+      if (success) {
+        updateTrackStatus(index, 'success')
+        submittedScrobbles.push(...scrobbleList)
+        ledgerUpdates[key] = {
+          count: state.playCount,
+          lastPlayed: state.lastPlayed,
+          syncedAt: now
+        }
       } else {
         updateTrackStatus(index, 'failed')
         failedTracks.push(track)
@@ -445,23 +444,23 @@ export async function scrobbleTracksIndividually (tracklist, updateTrackStatus, 
   }
 }
 
-async function sendScrobbleRequest(tracklist, timeout = 0) {
+async function sendScrobbleRequest (tracklist, timeout = 0) {
   try {
-      logDebug('sendScrobbleRequest', { tracklist: tracklist.length, timeout })
-      const response = await axios.post(
+    logDebug('sendScrobbleRequest', { tracklist: tracklist.length, timeout })
+    const response = await axios.post(
           `${serverUrl}/scrobble`,
           { tracklist, sessionKey: preferences.lastFm.sessionKey },
           {
-              headers: {
-                  Authorization: `Bearer ${preferences.lastFm.sessionKey}`,
-              },
-              timeout,
+            headers: {
+              Authorization: `Bearer ${preferences.lastFm.sessionKey}`
+            },
+            timeout
           }
-      )
-      return response.data.success
+    )
+    return response.data.success
   } catch (error) {
-      console.error("Error scrobbling:", error.message)
-      return false
+    console.error('Error scrobbling:', error.message)
+    return false
   }
 }
 

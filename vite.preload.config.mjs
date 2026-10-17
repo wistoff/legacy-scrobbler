@@ -1,15 +1,15 @@
-import { defineConfig, mergeConfig } from 'vite';
+import { defineConfig, mergeConfig } from 'vite'
 import {
   getBuildConfig,
   external,
-  pluginHotRestart,
-} from './vite.base.config.mjs';
+  pluginHotRestart
+} from './vite.base.config.mjs'
 
 // https://vitejs.dev/config
 export default defineConfig((env) => {
   /** @type {import('vite').ConfigEnv<'build'>} */
-  const forgeEnv = env;
-  const { forgeConfigSelf } = forgeEnv;
+  const forgeEnv = env
+  const { forgeConfigSelf } = forgeEnv
   /** @type {import('vite').UserConfig} */
   const config = {
     build: {
@@ -23,12 +23,12 @@ export default defineConfig((env) => {
           inlineDynamicImports: true,
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
-          assetFileNames: '[name].[ext]',
-        },
-      },
+          assetFileNames: '[name].[ext]'
+        }
+      }
     },
-    plugins: [pluginHotRestart('reload')],
-  };
+    plugins: [pluginHotRestart('reload')]
+  }
 
-  return mergeConfig(getBuildConfig(forgeEnv), config);
-});
+  return mergeConfig(getBuildConfig(forgeEnv), config)
+})

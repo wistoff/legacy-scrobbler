@@ -1,7 +1,7 @@
 // build keys when signing and notarizing the app
 // const buildKeys = require('./build-scripts/build-keys')
 
-const package = require('./package.json')
+const packageJson = require('./package.json')
 
 module.exports = {
   packagerConfig: {
@@ -34,7 +34,7 @@ module.exports = {
         authors: 'Kjell Wistoff',
         description:
           'Legacy Scrobbler enables users to sync their listening history from offline devices to their Last.fm profile, preserving their music legacy in the digital era.',
-        setupExe: `Legacy Scrobbler-${package.version}-setup-${arch}.exe`,
+        setupExe: `Legacy Scrobbler-${packageJson.version}-setup-${arch}.exe`,
         setupIcon: './images/icon.ico',
         loadingGif: './images/win-setup-loading.gif'
       })
@@ -43,7 +43,7 @@ module.exports = {
     {
       name: '@electron-forge/maker-dmg',
       config: (arch) => ({
-        name: `Legacy Scrobbler-${package.version}-${arch}`,
+        name: `Legacy Scrobbler-${packageJson.version}-${arch}`,
         title: `Legacy Scrobbler ${arch}`,
         background: './images/dmg-background-gatekeeper.png',
         format: 'ULFO',
@@ -86,7 +86,7 @@ module.exports = {
           categories: ['AudioVideo', 'Audio']
         }
       }
-   },
+    }
     // {
     //   name: '@electron-forge/maker-rpm',
     //   config: {}

@@ -13,5 +13,5 @@ contextBridge.exposeInMainWorld('ipc', {
     ipcRenderer.invoke('read:config', { action, key }),
   writeConfig: (action, key, value) =>
     ipcRenderer.invoke('write:config', { action, key, value }),
-  openFile: () => ipcRenderer.invoke('dialog:openFile'),
+  openFile: () => ipcRenderer.invoke('dialog:openFile')
 })

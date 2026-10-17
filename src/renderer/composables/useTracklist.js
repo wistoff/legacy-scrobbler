@@ -34,7 +34,7 @@ export const useTracklist = () => {
   }
 
   // Function to clear the tracklist
-  const clearScrobbled  = async () => {
+  const clearScrobbled = async () => {
     scrobbled.tracks = 0
     scrobbled.playtime = 0
     scrobbled.state = false
@@ -96,7 +96,6 @@ export const useTracklist = () => {
     return totalPlaytimeSeconds
   }
 
-
   // Function to toggle track selection by ID
   const toggleTrackSelection = id => {
     const selectedTrackIndex = selectedTracks.findIndex(
@@ -117,9 +116,9 @@ export const useTracklist = () => {
   return {
     tracklist: globalTracklist,
     selectedTracklist: selectedTracks,
-    scrobbled: scrobbled,
-    scanSummary: scanSummary,
-    lastSync: lastSync,
+    scrobbled,
+    scanSummary,
+    lastSync,
     clearScrobbled,
     setScrobbledSummary,
     setScanSummary,

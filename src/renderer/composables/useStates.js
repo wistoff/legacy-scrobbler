@@ -78,7 +78,7 @@ export const useStates = () => {
   return {
     deviceState: globalDeviceState,
     popup: globalPopup,
-    errorPopup: errorPopup,
+    errorPopup,
     showConnectPopup,
     setDeviceState,
     showErrorPopup,

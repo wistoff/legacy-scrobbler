@@ -10,7 +10,7 @@ const logDebug = (...args) => {
 }
 
 async function parseItunesDb (filePath, onProgress) {
-  let tracklist = []
+  const tracklist = []
   try {
     console.log('Reading iTunesDB file:', filePath)
     logDebug('parseItunesDb start', { filePath })
@@ -95,12 +95,7 @@ async function parseMhit (handler, startOffset) {
 
   const dword = Buffer.alloc(4)
 
-  const readHeaderSize = await readBytesAtPosition(
-    handler,
-    dword,
-    bytesOffset,
-    4
-  )
+  await readBytesAtPosition(handler, dword, bytesOffset, 4)
   const headerSize = Number(littleEndianToBigInt(dword))
 
   bytesOffset += 4
@@ -108,12 +103,12 @@ async function parseMhit (handler, startOffset) {
   // Skip 4 bytes
   bytesOffset += 4
 
-  const mhodEntries = await readBytesAtPosition(handler, dword, bytesOffset, 4)
+  await readBytesAtPosition(handler, dword, bytesOffset, 4)
   const mhodEntriesCount = Number(littleEndianToBigInt(dword))
 
   bytesOffset += 4
 
-  const trackId = await readBytesAtPosition(handler, dword, bytesOffset, 4)
+  await readBytesAtPosition(handler, dword, bytesOffset, 4)
   const trackIdValue = Number(littleEndianToBigInt(dword))
   track.id = trackIdValue
 
@@ -122,7 +117,7 @@ async function parseMhit (handler, startOffset) {
   // skip 20 bytes
   bytesOffset += 20
 
-  const trackLength = await readBytesAtPosition(handler, dword, bytesOffset, 4)
+  await readBytesAtPosition(handler, dword, bytesOffset, 4)
   const trackLengthValue = Number(littleEndianToBigInt(dword))
   track.length = trackLengthValue
 
@@ -141,31 +136,26 @@ async function parsemhod (track, handler, startOffset, headerSize) {
 
   bytesOffset += 8
 
-  const totalSize = await readBytesAtPosition(handler, dword, bytesOffset, 4)
+  await readBytesAtPosition(handler, dword, bytesOffset, 4)
   const totalSizeValue = Number(littleEndianToBigInt(dword))
 
   bytesOffset += 4
 
-  const mhodType = await readBytesAtPosition(handler, dword, bytesOffset, 4)
+  await readBytesAtPosition(handler, dword, bytesOffset, 4)
   const mhodTypeValue = Number(littleEndianToBigInt(dword))
 
   bytesOffset += 4
 
-  if (mhodTypeValue == 1 || mhodTypeValue == 3 || mhodTypeValue == 4) {
+  if (mhodTypeValue === 1 || mhodTypeValue === 3 || mhodTypeValue === 4) {
     bytesOffset += 12
 
-    const stringLength = await readBytesAtPosition(
-      handler,
-      dword,
-      bytesOffset,
-      4
-    )
+    await readBytesAtPosition(handler, dword, bytesOffset, 4)
     const stringLengthValue = Number(littleEndianToBigInt(dword))
 
     bytesOffset += 12
 
     const dataArray = Buffer.alloc(stringLengthValue)
-    const data = await readBytesAtPosition(
+    await readBytesAtPosition(
       handler,
       dataArray,
       bytesOffset,
@@ -191,7 +181,7 @@ async function parsemhod (track, handler, startOffset, headerSize) {
 
 // Function to convert little endian byte array to big endian
 function littleEndianToBigInt (byteArray) {
-  let bigEndianBytes = Buffer.alloc(byteArray.length)
+  const bigEndianBytes = Buffer.alloc(byteArray.length)
   for (let i = 0; i < byteArray.length; i++) {
     bigEndianBytes[i] = byteArray[byteArray.length - i - 1]
   }

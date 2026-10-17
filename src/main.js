@@ -1,3 +1,6 @@
+/* global MAIN_WINDOW_VITE_DEV_SERVER_URL, MAIN_WINDOW_VITE_NAME */
+
+import { getRecentTracks } from './renderer/utils/readDB.js'
 const {
   app,
   BrowserWindow,
@@ -15,7 +18,6 @@ const store = require('./store')
 const fs = require('fs')
 const { execFile, spawn } = require('child_process')
 const { existsSync } = fs
-import { getRecentTracks } from './renderer/utils/readDB.js'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 // Inlined from electron-squirrel-startup to avoid bundling issues
@@ -207,8 +209,8 @@ const createWindow = ({ width, height }) => {
     titleBarStyle: isWindows ? false : isLinux ? 'default' : 'hidden',
     frame: isWindows || isLinux,
     autoHideMenuBar: true,
-    width: width,
-    height: height,
+    width,
+    height,
     minWidth: 660,
     minHeight: 500,
     webPreferences: {
@@ -237,7 +239,7 @@ const createWindow = ({ width, height }) => {
   mainWindow.on('resize', () => {
     // The event doesn't pass us the window size, so we call the `getBounds` method which returns an object with
     // the height, width, and x and y coordinates.
-    let { width, height } = mainWindow.getBounds()
+    const { width, height } = mainWindow.getBounds()
     // Now that we have them, save them using the `set` method.
     store.setConfig('windowBounds', { width, height })
   })
@@ -432,8 +434,8 @@ app.on('ready', async () => {
 
   session.defaultSession.webRequest.onHeadersReceived(
     { urls: ['<all_urls>'] },
-    (details, callback) => {
-      callback({
+    (details, respond) => {
+      respond({
         responseHeaders: {
           ...details.responseHeaders,
           'Content-Security-Policy': [
@@ -565,7 +567,6 @@ async function handleEjectDevice (event, { path: devicePath }) {
     }
     logDebug('eject device requested (linux)', { devicePath: trimmedPath })
 
-
     try {
       // Find the block device for this mount point using lsblk
       const mountPoint = trimmedPath.split('/iPod_Control')[0]
@@ -657,7 +658,7 @@ async function handleEjectDevice (event, { path: devicePath }) {
       '$shell=New-Object -ComObject Shell.Application',
       '$item=$shell.Namespace(17).ParseName($drive)',
       'if ($null -eq $item) { exit 2 }',
-      '$item.InvokeVerb(\"Eject\")'
+      '$item.InvokeVerb("Eject")'
     ].join('; ')
     await execFileAsync('powershell.exe', ['-NoProfile', '-Command', script])
     await new Promise(resolve => setTimeout(resolve, 500))
