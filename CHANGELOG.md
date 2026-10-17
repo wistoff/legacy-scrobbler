@@ -1,6 +1,6 @@
 # Legacy Scrobbler Changelog
 
-## Unreleased
+## Version 1.0.7 - Build Tooling Upgrade (2026-10-17)
 
 ### Dependencies
 - Upgrade Electron from 39 to 43, Electron Forge from 7 to 8, and Vite from 6 to 8 while retaining Windows 32-bit builds.

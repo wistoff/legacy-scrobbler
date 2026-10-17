@@ -7,7 +7,7 @@
   </div>
 </div>
 
-[![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)](https://legacyscrobbler.software)
+[![Version](https://img.shields.io/badge/version-1.0.7-blue.svg)](https://legacyscrobbler.software)
 [![GitHub stars](https://img.shields.io/github/stars/wistoff/legacy-scrobbler.svg)](https://github.com/wistoff/legacy-scrobbler/stargazers)
 ![Electron](https://img.shields.io/badge/Electron-39-teal.svg)
 ![Vue](https://img.shields.io/badge/Vue-3.5-green.svg)
