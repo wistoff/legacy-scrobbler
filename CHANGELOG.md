@@ -12,6 +12,9 @@
 - Standardize local and release builds on Node.js 20 and npm.
 - Run tests and a Linux packaging smoke test on pushes and pull requests.
 
+### Dependencies
+- Refresh dependencies to current compatible releases, removing all production dependency audit findings.
+
 ## Version 1.0.4 - Linux Support (2026-04-29)
 
 ### New Features
