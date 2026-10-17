@@ -44,7 +44,28 @@ xattr -cr "/Applications/Legacy Scrobbler.app"
 - Hover the tray icon to see the last scrobble time.
 
 ## Please Notice
-- If you use iTunes/Apple Music to sync your iPod this will erase the Play Counts File, in order to scrobble your recent Plays do not sync before using Legacy Scrobbler 
+- If you use iTunes/Apple Music to sync your iPod this will erase the Play Counts File, in order to scrobble your recent Plays do not sync before using Legacy Scrobbler.
+
+### macOS: "No plays found"
+
+macOS may run `AMPDevicesAgent` when an iPod is connected, even when Apple Music is closed and automatic syncing is disabled. This process can consume or remove the `Play Counts` file before Legacy Scrobbler reads it.
+
+If the app detects your iPod but reports no plays:
+
+1. Disconnect the iPod and close Apple Music.
+2. Run `killall AMPDevicesAgent` in Terminal.
+3. Reconnect the iPod and scan with Legacy Scrobbler before opening Apple Music or syncing.
+
+macOS may restart the agent automatically, so repeat these steps if the problem returns.
+
+## Supported Scope
+
+Legacy Scrobbler supports stock click-wheel iPods that expose `iPod_Control/iTunes/iTunesDB` and `Play Counts` over mounted storage. It does not support:
+
+- Rockbox playback logs
+- iOS-based iPod touch devices
+- Android devices
+- Submission providers other than Last.fm
 
 ## Settings
 ![Settings](/images/settings.png)

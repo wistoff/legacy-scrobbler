@@ -9,6 +9,9 @@
 ### Build / CI
 - Update main and preload bundles to the `.cjs` output required by Electron Forge 8.
 
+### Documentation
+- Document the macOS `AMPDevicesAgent` workaround and clarify supported device, firmware, and submission-provider scope.
+
 ## Version 1.0.6 - Version Display (2026-10-17)
 
 ### Bug Fixes
