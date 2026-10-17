@@ -1,5 +1,10 @@
 # Legacy Scrobbler Changelog
 
+## Version 1.0.6 - Version Display (2026-10-17)
+
+### Bug Fixes
+- Show the packaged application version in the About dialog instead of a stale hardcoded value.
+
 ## Version 1.0.5 - Play Count Reliability (2026-10-17)
 
 ### Bug Fixes

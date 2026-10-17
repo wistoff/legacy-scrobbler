@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import packageJson from '../../../package.json'
 
 const DEVICE_STATES = {
   NOT_CONNECTED: 'not-connected',
@@ -16,7 +17,7 @@ const POPUP_STATES = {
   ABOUT: {
     title: 'About Legacy Scrobbler',
     message: `
-    <b> Version: 1.0.4</b>
+    <b> Version: ${packageJson.version}</b>
 
     <p class="credits"> <b>Credits:</b><br/>
     Legacy Scrobbler utilizes icons from Iconoir under the MIT License.<br/>
