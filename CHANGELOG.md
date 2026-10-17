@@ -1,5 +1,14 @@
 # Legacy Scrobbler Changelog
 
+## Unreleased
+
+### Dependencies
+- Upgrade Electron from 39 to 44, Electron Forge from 7 to 8, and Vite from 6 to 8.
+- Require Node.js 22.13 or newer for source builds.
+
+### Build / CI
+- Update main and preload bundles to the `.cjs` output required by Electron Forge 8.
+
 ## Version 1.0.6 - Version Display (2026-10-17)
 
 ### Bug Fixes

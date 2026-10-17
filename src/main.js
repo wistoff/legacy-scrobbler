@@ -218,7 +218,7 @@ const createWindow = ({ width, height }) => {
       contextIsolation: true,
       enableRemoteModule: false,
       devTools: isDev,
-      preload: path.resolve(__dirname, 'preload.js')
+      preload: path.resolve(__dirname, 'preload.cjs')
     }
   })
 

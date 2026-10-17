@@ -1,12 +1,24 @@
-import { builtinModules } from 'node:module'
-import pkg from './package.json'
+import { builtinModules, createRequire } from 'node:module'
+import { styleText } from 'node:util'
+
+import { requestAppRestart } from '@electron-forge/core-utils/restart'
+
+const require = createRequire(import.meta.url)
+const packageJson = require('./package.json')
 
 export const builtins = [
   'electron',
-  ...builtinModules.map(m => [m, `node:${m}`]).flat()
+  'electron/common',
+  ...builtinModules.map(module => [module, `node:${module}`]).flat()
 ]
 
-export const external = [...builtins, ...Object.keys(pkg.dependencies || {})]
+export const external = [
+  ...builtins,
+  ...Object.keys(packageJson.dependencies || {})
+]
+
+const viteDevServers = {}
+const viteDevServerUrls = {}
 
 /** @type {(env: import('vite').ConfigEnv<'build'>) => import('vite').UserConfig} */
 export const getBuildConfig = env => {
@@ -16,93 +28,91 @@ export const getBuildConfig = env => {
     root,
     mode,
     build: {
-      // Prevent multiple builds from interfering with each other.
+      copyPublicDir: false,
       emptyOutDir: false,
-      // 🚧 Multiple builds may conflict.
       outDir: '.vite/build',
-      watch: command === 'serve' ? {} : null,
+      watch: command === 'serve' ? { exclude: '**/.git/**' } : null,
       minify: command === 'build'
     },
     clearScreen: false
   }
 }
 
-/** @type {(names: string[]) => { [name: string]: VitePluginRuntimeKeys } }} */
 export const getDefineKeys = names => {
-  /** @type {{ [name: string]: VitePluginRuntimeKeys }} */
-  const define = {}
-
-  return names.reduce((acc, name) => {
-    const NAME = name.toUpperCase()
-    /** @type {VitePluginRuntimeKeys} */
-    const keys = {
-      VITE_DEV_SERVER_URL: `${NAME}_VITE_DEV_SERVER_URL`,
-      VITE_NAME: `${NAME}_VITE_NAME`
+  return names.reduce((define, name) => {
+    const normalizedName = name.toUpperCase().replaceAll('-', '_')
+    return {
+      ...define,
+      [name]: {
+        VITE_DEV_SERVER_URL: `${normalizedName}_VITE_DEV_SERVER_URL`,
+        VITE_NAME: `${normalizedName}_VITE_NAME`
+      }
     }
-
-    return { ...acc, [name]: keys }
-  }, define)
+  }, {})
 }
 
-/** @type {(env: import('vite').ConfigEnv<'build'>) => Record<string, any>} */
 export const getBuildDefine = env => {
   const { command, forgeConfig } = env
   const names = forgeConfig.renderer
     .filter(({ name }) => name != null)
     .map(({ name }) => name)
   const defineKeys = getDefineKeys(names)
-  const define = Object.entries(defineKeys).reduce((acc, [name, keys]) => {
+
+  return Object.entries(defineKeys).reduce((define, [name, keys]) => {
     const { VITE_DEV_SERVER_URL, VITE_NAME } = keys
-    const def = {
-      [VITE_DEV_SERVER_URL]:
-        command === 'serve'
-          ? JSON.stringify(process.env[VITE_DEV_SERVER_URL])
-          : undefined,
+    return {
+      ...define,
+      [VITE_DEV_SERVER_URL]: command === 'serve'
+        ? JSON.stringify(viteDevServerUrls[VITE_DEV_SERVER_URL])
+        : undefined,
       [VITE_NAME]: JSON.stringify(name)
     }
-    return { ...acc, ...def }
   }, {})
-
-  return define
 }
 
-/** @type {(name: string) => import('vite').Plugin} */
+const resolveDevHost = host => {
+  if (typeof host !== 'string' || host === '0.0.0.0' || host === '::') {
+    return 'localhost'
+  }
+  return host.includes(':') ? `[${host}]` : host
+}
+
 export const pluginExposeRenderer = name => {
   const { VITE_DEV_SERVER_URL } = getDefineKeys([name])[name]
 
   return {
     name: '@electron-forge/plugin-vite:expose-renderer',
     configureServer (server) {
-      process.viteDevServers ??= {}
-      // Expose server for preload scripts hot reload.
-      process.viteDevServers[name] = server
-
+      viteDevServers[name] = server
       server.httpServer?.once('listening', () => {
-        /** @type {import('node:net').AddressInfo} */
         const addressInfo = server.httpServer?.address()
-        // Expose env constant for main process use.
-        process.env[
-          VITE_DEV_SERVER_URL
-        ] = `http://localhost:${addressInfo?.port}`
+        viteDevServerUrls[VITE_DEV_SERVER_URL] =
+          `http://${resolveDevHost(server.config.server.host)}:${addressInfo?.port}`
       })
     }
   }
 }
 
-/** @type {(command: 'reload' | 'restart') => import('vite').Plugin} */
 export const pluginHotRestart = command => {
+  let builtOnce = false
+
   return {
-    name: '@electron-forge/plugin-vite:hot-restart',
-    closeBundle () {
+    name: `@electron-forge/plugin-vite:hot-${command}`,
+    closeBundle (error) {
+      const isRebuild = builtOnce
+      builtOnce = true
+
+      if (error) return
+
       if (command === 'reload') {
-        for (const server of Object.values(process.viteDevServers)) {
-          // Preload scripts hot reload.
+        for (const server of Object.values(viteDevServers)) {
           server.ws.send({ type: 'full-reload' })
         }
-      } else {
-        // Main process hot restart.
-        // https://github.com/electron/forge/blob/v7.2.0/packages/api/core/src/api/start.ts#L216-L223
-        process.stdin.emit('data', 'rs')
+      } else if (command === 'restart' && !requestAppRestart() && isRebuild) {
+        console.warn(styleText(
+          'yellow',
+          '[@electron-forge/plugin-vite] Main process rebuilt, but the running app was not restarted.'
+        ))
       }
     }
   }

@@ -6,27 +6,27 @@ import {
   pluginHotRestart
 } from './vite.base.config.mjs'
 
-// https://vitejs.dev/config
-export default defineConfig((env) => {
-  /** @type {import('vite').ConfigEnv<'build'>} */
-  const forgeEnv = env
+export default defineConfig(forgeEnv => {
   const { forgeConfigSelf } = forgeEnv
-  const define = getBuildDefine(forgeEnv)
   const config = {
     build: {
       lib: {
         entry: forgeConfigSelf.entry,
-        fileName: () => '[name].js',
+        fileName: () => '[name].cjs',
         formats: ['cjs']
       },
       rollupOptions: {
-        external
+        external: [...external, 'electron/main']
       }
     },
-    plugins: [pluginHotRestart('restart')],
-    define,
+    plugins: [
+      ...(forgeEnv.forgeConfig.hotRestart
+        ? [pluginHotRestart('restart')]
+        : [])
+    ],
+    define: getBuildDefine(forgeEnv),
     resolve: {
-      // Load the Node.js entry.
+      conditions: ['node'],
       mainFields: ['module', 'jsnext:main', 'jsnext']
     }
   }

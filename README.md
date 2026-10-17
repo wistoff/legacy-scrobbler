@@ -58,7 +58,7 @@ xattr -cr "/Applications/Legacy Scrobbler.app"
 ## Building from Source
 
 ### Prerequisites
-- Node.js 20 and npm installed on your system.
+- Node.js 22.13 or newer and npm installed on your system.
 
 ### Building Legacy Scrobbler
 1. Clone the repository: `git clone https://github.com/wistoff/legacy-scrobbler.git`
