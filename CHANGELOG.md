@@ -1,6 +1,6 @@
 # Legacy Scrobbler Changelog
 
-## Unreleased
+## Version 1.0.5 - Play Count Reliability (2026-10-17)
 
 ### Bug Fixes
 - Process the final `Play Counts` entry when the number of entries matches the number of tracks in `iTunesDB`.
