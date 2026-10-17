@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Dependencies
-- Upgrade Electron from 39 to 44, Electron Forge from 7 to 8, and Vite from 6 to 8.
+- Upgrade Electron from 39 to 43, Electron Forge from 7 to 8, and Vite from 6 to 8 while retaining Windows 32-bit builds.
 - Require Node.js 22.13 or newer for source builds.
 
 ### Build / CI

@@ -29,14 +29,14 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: Legacy-Scrobbler-macOS-arm64
-          path: out/make/*-arm64.dmg
+          path: out/make/**/*-arm64.dmg
           if-no-files-found: error
 
       - name: Upload macOS x64 DMG
         uses: actions/upload-artifact@v7
         with:
           name: Legacy-Scrobbler-macOS-x64
-          path: out/make/*-x64.dmg
+          path: out/make/**/*-x64.dmg
           if-no-files-found: error
 
   build-windows:
